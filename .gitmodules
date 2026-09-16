@@ -1,0 +1,3 @@
+[submodule "apps/AstrBot"]
+	path = apps/AstrBot
+	url = https://github.com/AstrBotDevs/AstrBot.git
