@@ -1,0 +1,98 @@
+services:
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: ${MQTT_CONTAINER_NAME:-astrbotex-mqtt}
+    restart: unless-stopped
+    command:
+      - /bin/sh
+      - -c
+      - |
+        cat > /tmp/mosquitto.conf <<'EOF'
+        listener 1883 0.0.0.0
+        allow_anonymous true
+        persistence true
+        persistence_location /mosquitto/data/
+        log_dest stdout
+        EOF
+        exec mosquitto -c /tmp/mosquitto.conf
+    ports:
+      - "${MQTT_PORT:-1883}:1883"
+    volumes:
+      - ./deploy/mosquitto/data:/mosquitto/data
+      - ./deploy/mosquitto/log:/mosquitto/log
+    networks:
+      - robot_ai
+
+  astrbotex:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${ASTRBOTEX_IMAGE:-astrbotex:local}
+    container_name: ${ASTRBOTEX_CONTAINER_NAME:-astrbotex}
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - ASTRBOTEX_HOST=0.0.0.0
+      - ASTRBOTEX_PORT=8765
+      - ASTRBOTEX_TICK_HZ=${ASTRBOTEX_TICK_HZ:-20}
+      - ASTRBOTEX_DATA_DIR=/app/data
+      - ASTRBOT_BASE_URL=${ASTRBOT_BASE_URL:-http://127.0.0.1:8766}
+      - ASTRBOTEX_SESSION_ID=${ASTRBOTEX_SESSION_ID:-astrbotex_default}
+      - ASTRBOTEX_TIMEOUT_SEC=${ASTRBOTEX_TIMEOUT_SEC:-10}
+      - ASTRBOTEX_TTS_TIMEOUT_SEC=${ASTRBOTEX_TTS_TIMEOUT_SEC:-30}
+      - ASTRBOTEX_STT_ENABLED=${ASTRBOTEX_STT_ENABLED:-true}
+      - ASTRBOTEX_TTS_ENABLED=${ASTRBOTEX_TTS_ENABLED:-true}
+    volumes:
+      - ./deploy/astrbotex/data:/app/data
+      - /dev:/dev
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    depends_on:
+      - mqtt
+
+  astrbot:
+    image: ${ASTRBOT_IMAGE:-soulter/astrbot:latest}
+    container_name: ${ASTRBOT_CONTAINER_NAME:-astrbot}
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - ASTRBOTEX_BASE_URL=${ASTRBOTEX_BASE_URL:-http://astrbotex:8765}
+      - ASTRBOTEX_PLUGIN_HOST=0.0.0.0
+      - ASTRBOTEX_PLUGIN_PORT=8766
+    ports:
+      - "${ASTRBOT_WEB_PORT:-6185}:6185"
+      - "${ASTRBOT_PLATFORM_PORT:-6199}:6199"
+      - "127.0.0.1:${ASTRBOT_INTERACTION_PORT:-8766}:8766"
+    volumes:
+      - ./deploy/astrbot/data:/AstrBot/data
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    depends_on:
+      - mqtt
+      - astrbotex
+      - napcat
+    networks:
+      - robot_ai
+
+  napcat:
+    image: ${NAPCAT_IMAGE:-mlikiowa/napcat-docker:latest}
+    container_name: ${NAPCAT_CONTAINER_NAME:-napcat}
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - MODE=astrbot
+      - NAPCAT_UID=${NAPCAT_UID:-1000}
+      - NAPCAT_GID=${NAPCAT_GID:-1000}
+    ports:
+      - "${NAPCAT_PORT:-6099}:6099"
+    volumes:
+      - ./deploy/astrbot/data:/AstrBot/data
+      - ./deploy/napcat/config:/app/napcat/config
+      - ./deploy/napcat/ntqq:/app/.config/QQ
+    networks:
+      - robot_ai
+
+networks:
+  robot_ai:
+    driver: bridge

@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ASTRBOTEX · CONTROL PANEL</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <span class="brand-mark-core"></span>
+          </div>
+          <div class="brand-text">
+            <div class="brand-title">ASTRBOTEX</div>
+            <div class="brand-sub">CONTROL · REV 0.4</div>
+          </div>
+        </div>
+
+        <nav class="nav">
+          <button class="nav-item active" data-page="core">
+            <span class="nav-num">01</span><span class="nav-label">核心</span>
+          </button>
+          <button class="nav-item" data-page="plugins">
+            <span class="nav-num">02</span><span class="nav-label">插件</span>
+          </button>
+          <button class="nav-item" data-page="logs">
+            <span class="nav-num">03</span><span class="nav-label">运行日志</span>
+          </button>
+          <button class="nav-item" data-page="voice">
+            <span class="nav-num">04</span><span class="nav-label">语音</span>
+          </button>
+          <button class="nav-item" data-page="connections">
+            <span class="nav-num">05</span><span class="nav-label">连接</span>
+          </button>
+          <button class="nav-item" data-page="archives">
+            <span class="nav-num">06</span><span class="nav-label">存档</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-foot">
+          <div class="foot-row">
+            <span class="foot-label">API</span>
+            <span class="foot-value" id="apiBaseLabel">127.0.0.1:8765</span>
+          </div>
+          <div class="foot-row">
+            <span class="foot-label">BUILD</span>
+            <span class="foot-value">2026.07</span>
+          </div>
+        </div>
+      </aside>
+
+      <div class="main-col">
+        <div class="status-strip" role="status" aria-live="polite">
+          <div class="strip-cell strip-conn" id="connectionPill">
+            <span class="sq" aria-hidden="true"></span><span data-label>连接中</span>
+          </div>
+          <div class="strip-sep"></div>
+          <div class="strip-cell">
+            <span class="strip-label">RUNTIME</span>
+            <span class="strip-value" id="stripRuntime">--</span>
+          </div>
+          <div class="strip-cell">
+            <span class="strip-label">TICK</span>
+            <span class="strip-value" id="stripTick">--</span>
+          </div>
+          <div class="strip-cell">
+            <span class="strip-label">BATT</span>
+            <span class="strip-value" id="stripBatt">--</span>
+          </div>
+          <div class="strip-cell">
+            <span class="strip-label">ESTOP</span>
+            <span class="strip-value" id="stripEstop">--</span>
+          </div>
+          <div class="strip-cell">
+            <span class="strip-label">SKILL</span>
+            <span class="strip-value" id="stripSkill">--</span>
+          </div>
+          <div class="strip-cell strip-sse">
+            <span class="strip-label">SSE</span>
+            <span class="strip-value" id="stripSse">--</span>
+          </div>
+          <div class="strip-spacer"></div>
+          <button class="btn btn-ghost btn-sm" id="refreshButton">刷新</button>
+          <button class="btn btn-danger-solid btn-sm" id="runtimeToggleButton">已停止</button>
+        </div>
+
+        <main class="main">
+          <!-- ============ 01 CORE ============ -->
+          <section class="page active" id="page-core">
+            <header class="page-head">
+              <div class="page-head-num">01</div>
+              <div class="page-head-text">
+                <h1>核心运行时</h1>
+                <p>本地 AstrBotEX Core 状态与运行快照</p>
+              </div>
+            </header>
+
+            <section class="metric-grid">
+              <article class="metric">
+                <span class="corner tl"></span><span class="corner tr"></span>
+                <span class="corner bl"></span><span class="corner br"></span>
+                <span class="metric-label">运行状态</span>
+                <strong class="metric-value" id="runtimeState">--</strong>
+                <small class="metric-sub" id="runtimeDetail">等待 API 返回</small>
+              </article>
+              <article class="metric">
+                <span class="corner tl"></span><span class="corner tr"></span>
+                <span class="corner bl"></span><span class="corner br"></span>
+                <span class="metric-label">世界状态</span>
+                <strong class="metric-value" id="worldSummary">--</strong>
+                <small class="metric-sub" id="worldDetail">实体 / 区域 / 机器人</small>
+              </article>
+              <article class="metric">
+                <span class="corner tl"></span><span class="corner tr"></span>
+                <span class="corner bl"></span><span class="corner br"></span>
+                <span class="metric-label">运动链路</span>
+                <strong class="metric-value" id="motionState">--</strong>
+                <small class="metric-sub" id="motionDetail">等待 RobotState</small>
+              </article>
+              <article class="metric">
+                <span class="corner tl"></span><span class="corner tr"></span>
+                <span class="corner bl"></span><span class="corner br"></span>
+                <span class="metric-label">当前技能</span>
+                <strong class="metric-value" id="activeSkill">--</strong>
+                <small class="metric-sub" id="skillDetail">--</small>
+              </article>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <span class="panel-num">01.A</span>
+                <h2>运行快照</h2>
+                <span class="panel-meta" id="snapshotTime">未同步</span>
+              </div>
+              <div class="snapshot-grid">
+                <div class="kv">
+                  <span class="kv-label">TICK 频率</span>
+                  <span class="kv-dots"></span>
+                  <b class="kv-value" id="tickHz">--</b>
+                </div>
+                <div class="kv">
+                  <span class="kv-label">电池电压</span>
+                  <span class="kv-dots"></span>
+                  <b class="kv-value" id="batteryVoltage">--</b>
+                </div>
+                <div class="kv">
+                  <span class="kv-label">急停</span>
+                  <span class="kv-dots"></span>
+                  <b class="kv-value" id="estopState">--</b>
+                </div>
+                <div class="kv">
+                  <span class="kv-label">机器人位姿</span>
+                  <span class="kv-dots"></span>
+                  <b class="kv-value" id="robotPose">--</b>
+                </div>
+              </div>
+              <div class="json-preview" id="goalPreview">active_goal: null</div>
+            </section>
+          </section>
+
+          <!-- ============ 02 PLUGINS ============ -->
+          <section class="page" id="page-plugins">
+            <header class="page-head">
+              <div class="page-head-num">02</div>
+              <div class="page-head-text">
+                <h1>插件管理</h1>
+                <p>视觉 / 感知 / 控制 / 决策 / 特殊 —— 全部已安装插件</p>
+              </div>
+            </header>
+
+            <div class="tab-rail" role="tablist">
+              <button class="tab-item active" data-category="all" role="tab">
+                全部 <span class="tab-count" data-count="all">0</span>
+              </button>
+              <button class="tab-item" data-category="vision" role="tab">
+                视觉 <span class="tab-count" data-count="vision">0</span>
+              </button>
+              <button class="tab-item" data-category="perception" role="tab">
+                感知 <span class="tab-count" data-count="perception">0</span>
+              </button>
+              <button class="tab-item" data-category="control" role="tab">
+                控制 <span class="tab-count" data-count="control">0</span>
+              </button>
+              <button class="tab-item" data-category="decision" role="tab">
+                决策 <span class="tab-count" data-count="decision">0</span>
+              </button>
+              <button class="tab-item" data-category="special" role="tab">
+                特殊 <span class="tab-count" data-count="special">0</span>
+              </button>
+              <button class="tab-item" data-category="interaction" role="tab">
+                交互 <span class="tab-count" data-count="interaction">0</span>
+              </button>
+              <div class="tab-spacer"></div>
+              <button class="btn btn-ghost btn-sm" id="pluginRefreshButton">刷新</button>
+            </div>
+
+            <section class="panel plugin-panel">
+              <div class="panel-head">
+                <span class="panel-num">02.A</span>
+                <h2 id="pluginPanelTitle">已安装 · 全部</h2>
+                <span class="panel-meta"><span id="pluginCount">0</span> 个插件</span>
+              </div>
+              <div class="plugin-grid" id="pluginGrid"></div>
+            </section>
+
+            <button class="install-fab" id="pluginUploadFab" title="上传插件 ZIP" aria-label="上传插件 ZIP">
+              <span class="fab-glyph">+</span>
+              <span class="fab-label">INSTALL</span>
+            </button>
+          </section>
+
+          <!-- ============ 03 LOGS ============ -->
+          <section class="page" id="page-logs">
+            <header class="page-head">
+              <div class="page-head-num">03</div>
+              <div class="page-head-text">
+                <h1>运行日志</h1>
+                <p>运行时事件流 · 联调插件生命周期、策略决策与运动链路</p>
+              </div>
+              <div class="page-head-actions">
+                <div class="status-pill" id="logConnectionPill">
+                  <span class="sq" aria-hidden="true"></span><span data-label>日志流连接中</span>
+                </div>
+                <button class="btn btn-ghost btn-sm" id="logAutoscrollButton">自动滚动: 开</button>
+                <button class="btn btn-ghost btn-sm" id="logClearButton">清空</button>
+              </div>
+            </header>
+
+            <section class="panel log-panel">
+              <div class="panel-head">
+                <span class="panel-num">03.A</span>
+                <h2>事件流</h2>
+                <span class="panel-meta" id="eventStatus">SSE 未连接</span>
+              </div>
+              <div class="log-console" id="logConsole"></div>
+            </section>
+          </section>
+
+          <!-- ============ 04 VOICE ============ -->
+          <section class="page" id="page-voice">
+            <header class="page-head">
+              <div class="page-head-num">04</div>
+              <div class="page-head-text">
+                <h1>交互 / 语音</h1>
+                <p>STT / TTS 链路状态与自检</p>
+              </div>
+            </header>
+
+            <section class="metric-grid">
+              <article class="metric">
+                <span class="corner tl"></span><span class="corner tr"></span>
+                <span class="corner bl"></span><span class="corner br"></span>
+                <span class="metric-label">AstrBot 连接</span>
+                <strong class="metric-value" id="voiceAstrBotReachable">--</strong>
+                <small class="metric-sub" id="voiceAstrBotUrl">--</small>
+              </article>
+              <article class="metric">
+                <span class="corner tl"></span><span class="corner tr"></span>
+                <span class="corner bl"></span><span class="corner br"></span>
+                <span class="metric-label">STT Provider</span>
+                <strong class="metric-value" id="voiceSttProvider">--</strong>
+                <small class="metric-sub">语音转文字</small>
+              </article>
+              <article class="metric">
+                <span class="corner tl"></span><span class="corner tr"></span>
+                <span class="corner bl"></span><span class="corner br"></span>
+                <span class="metric-label">TTS Provider</span>
+                <strong class="metric-value" id="voiceTtsProvider">--</strong>
+                <small class="metric-sub">文字转语音</small>
+              </article>
+              <article class="metric">
+                <span class="corner tl"></span><span class="corner tr"></span>
+                <span class="corner bl"></span><span class="corner br"></span>
+                <span class="metric-label">麦克风插件</span>
+                <strong class="metric-value" id="voiceMicCount">--</strong>
+                <small class="metric-sub" id="voiceSpeakerCount">扬声器 --</small>
+              </article>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <span class="panel-num">04.A</span>
+                <h2>链路自检</h2>
+                <button class="btn btn-ghost btn-sm" id="voiceRefreshButton">刷新</button>
+              </div>
+              <div class="snapshot-grid" id="voiceStatusGrid">
+                <div class="kv">
+                  <span class="kv-label">AstrBot 地址</span>
+                  <span class="kv-dots"></span>
+                  <b class="kv-value" id="voiceDetailUrl">--</b>
+                </div>
+                <div class="kv">
+                  <span class="kv-label">麦克风插件</span>
+                  <span class="kv-dots"></span>
+                  <b class="kv-value" id="voiceDetailMic">--</b>
+                </div>
+                <div class="kv">
+                  <span class="kv-label">扬声器插件</span>
+                  <span class="kv-dots"></span>
+                  <b class="kv-value" id="voiceDetailSpeaker">--</b>
+                </div>
+                <div class="kv">
+                  <span class="kv-label">STT 代理</span>
+                  <span class="kv-dots"></span>
+                  <b class="kv-value" id="voiceDetailSttProxy">--</b>
+                </div>
+                <div class="kv">
+                  <span class="kv-label">TTS 代理</span>
+                  <span class="kv-dots"></span>
+                  <b class="kv-value" id="voiceDetailTtsProxy">--</b>
+                </div>
+                <div class="kv">
+                  <span class="kv-label">最近 STT</span>
+                  <span class="kv-dots"></span>
+                  <b class="kv-value" id="voiceDetailLastStt">--</b>
+                </div>
+                <div class="kv">
+                  <span class="kv-label">最近 TTS</span>
+                  <span class="kv-dots"></span>
+                  <b class="kv-value" id="voiceDetailLastTts">--</b>
+                </div>
+                <div class="kv">
+                  <span class="kv-label">最近错误</span>
+                  <span class="kv-dots"></span>
+                  <b class="kv-value" id="voiceDetailError">--</b>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <span class="panel-num">04.B</span>
+                <h2>手动测试</h2>
+              </div>
+              <div class="snapshot-grid">
+                <div class="kv">
+                  <span class="kv-label">发送文本到 AstrBot</span>
+                  <span class="kv-dots"></span>
+                  <button class="btn btn-primary btn-sm" id="voiceTestTextButton">测试发送</button>
+                </div>
+                <div class="kv">
+                  <span class="kv-label">测试 TTS 合成</span>
+                  <span class="kv-dots"></span>
+                  <button class="btn btn-primary btn-sm" id="voiceTestTtsButton">测试 TTS</button>
+                </div>
+                <div class="kv">
+                  <span class="kv-label">测试 STT 识别</span>
+                  <span class="kv-dots"></span>
+                  <input class="config-input voice-audio-input" id="voiceSttFile" type="file" accept="audio/*,.wav,.mp3,.ogg,.m4a,.webm" />
+                  <button class="btn btn-primary btn-sm" id="voiceTestSttButton">测试 STT</button>
+                </div>
+              </div>
+              <div class="kv" style="margin-top:8px">
+                <span class="kv-label">结果</span>
+                <span class="kv-dots"></span>
+                <b class="kv-value" id="voiceTestResult" style="word-break:break-all">--</b>
+              </div>
+            </section>
+          </section>
+
+          <!-- ============ 05 CONNECTIONS ============ -->
+          <section class="page" id="page-connections">
+            <header class="page-head connection-page-head">
+              <div class="page-head-num">05</div>
+              <div class="page-head-text">
+                <h1>连接</h1>
+                <p>ZeroMQ 与 WebSocket 连接管理</p>
+              </div>
+              <div class="page-head-actions connection-create-wrap">
+                <button class="btn btn-primary" id="connectionAddButton" aria-expanded="false" aria-controls="connectionAddMenu">
+                  <span class="button-plus" aria-hidden="true">+</span> 新增连接
+                </button>
+                <div class="connection-add-menu" id="connectionAddMenu" hidden>
+                  <div class="connection-menu-group">
+                    <div class="connection-menu-title">ZeroMQ</div>
+                    <button class="connection-type-option" data-connection-type="zmq_server">
+                      <span class="connection-type-mark">ZS</span>
+                      <span><b>ZeroMQ 服务器</b><small>绑定 ROUTER 端口</small></span>
+                    </button>
+                    <button class="connection-type-option" data-connection-type="zmq_client">
+                      <span class="connection-type-mark">ZC</span>
+                      <span><b>ZeroMQ 客户端</b><small>连接 DEALER 通道</small></span>
+                    </button>
+                  </div>
+                  <div class="connection-menu-group">
+                    <div class="connection-menu-title">WebSocket</div>
+                    <button class="connection-type-option" data-connection-type="websocket_server">
+                      <span class="connection-type-mark">WS</span>
+                      <span><b>WebSocket 服务器</b><small>监听正向连接</small></span>
+                    </button>
+                    <button class="connection-type-option" data-connection-type="websocket_client">
+                      <span class="connection-type-mark">WC</span>
+                      <span><b>WebSocket 客户端</b><small>连接反向服务</small></span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </header>
+
+            <section class="connection-summary" aria-label="连接摘要">
+              <div><span>全部连接</span><b id="connectionTotal">0</b></div>
+              <div><span>正在运行</span><b id="connectionRunning">0</b></div>
+              <div><span>已连接对端</span><b id="connectionPeers">0</b></div>
+              <button class="btn btn-ghost btn-sm" id="connectionRefreshButton">刷新</button>
+            </section>
+
+            <section class="connection-grid" id="connectionGrid"></section>
+          </section>
+
+          <!-- ============ 06 ARCHIVES ============ -->
+          <section class="page" id="page-archives">
+            <header class="page-head">
+              <div class="page-head-num">06</div>
+              <div class="page-head-text">
+                <h1>存档</h1>
+                <p>实例数据快照</p>
+              </div>
+            </header>
+
+            <section class="archive-stage" aria-labelledby="archiveStageTitle">
+              <div class="archive-actions" id="archiveStageTitle">
+                <button class="archive-action archive-action-backup" id="archiveBackupButton" type="button">
+                  <span class="archive-action-icon" aria-hidden="true">↓</span>
+                  <span>备份存档</span>
+                  <small>PROFILES + PLUGINS</small>
+                </button>
+                <button class="archive-action archive-action-upload" id="archiveUploadButton" type="button">
+                  <span class="archive-action-icon" aria-hidden="true">↑</span>
+                  <span>上传存档</span>
+                  <small>ZIP SNAPSHOT</small>
+                </button>
+              </div>
+              <div class="archive-status" id="archiveStatus" data-state="idle" role="status" aria-live="polite">
+                <span class="archive-status-mark" aria-hidden="true"></span>
+                <div>
+                  <b id="archiveStatusTitle">存档服务就绪</b>
+                  <span id="archiveStatusDetail">当前实例数据可随时导出</span>
+                </div>
+              </div>
+            </section>
+          </section>
+
+          <!-- ============ 05 CONNECTION DETAIL ============ -->
+          <section class="page" id="page-connection">
+            <header class="page-head">
+              <div class="page-head-num">05</div>
+              <div class="page-head-text">
+                <div class="breadcrumb">
+                  <button class="breadcrumb-link" id="connectionBackButton">05 连接</button>
+                  <span class="breadcrumb-sep">/</span>
+                  <span id="connectionDetailProtocol">连接配置</span>
+                </div>
+                <h1 id="connectionDetailTitle">连接配置</h1>
+                <p id="connectionDetailEndpoint">--</p>
+              </div>
+              <div class="page-head-actions">
+                <button class="btn btn-ghost" id="connectionDetailRefreshButton">刷新</button>
+                <button class="btn btn-primary" id="connectionSaveButton">保存配置</button>
+              </div>
+            </header>
+
+            <section class="connection-detail-layout">
+              <div class="connection-detail-main">
+                <section class="panel">
+                  <div class="panel-head">
+                    <span class="panel-num">05.A</span>
+                    <h2>基础设置</h2>
+                    <div class="connection-enable-control">
+                      <span id="connectionEnableLabel">已停止</span>
+                      <label class="switch" title="启用连接">
+                        <input type="checkbox" id="connectionEnabledInput" />
+                        <span></span>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="connection-form-grid">
+                    <label class="connection-field">
+                      <span>连接名称</span>
+                      <input class="config-input" id="connectionNameInput" maxlength="80" />
+                    </label>
+                    <label class="connection-field">
+                      <span>连接 ID</span>
+                      <input class="config-input" id="connectionIdInput" readonly />
+                    </label>
+                    <label class="connection-field">
+                      <span>连接类型</span>
+                      <input class="config-input" id="connectionTypeInput" readonly />
+                    </label>
+                    <div class="connection-field">
+                      <span>运行状态</span>
+                      <div class="connection-state-box"><span class="connection-state-dot" id="connectionStateDot"></span><b id="connectionStateText">--</b></div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="panel">
+                  <div class="panel-head">
+                    <span class="panel-num">05.B</span>
+                    <h2>传输配置</h2>
+                    <span class="panel-meta">修改后保存将重启连接</span>
+                  </div>
+                  <div class="connection-form-grid" id="connectionConfigForm"></div>
+                </section>
+
+                <section class="panel">
+                  <div class="panel-head">
+                    <span class="panel-num">05.C</span>
+                    <h2>消息测试</h2>
+                    <span class="panel-meta">JSON 或纯文本</span>
+                  </div>
+                  <div class="connection-send-row">
+                    <textarea class="config-input connection-message-input" id="connectionMessageInput" rows="4" spellcheck="false">{"type":"ping"}</textarea>
+                    <input class="config-input" id="connectionPeerInput" placeholder="可选：指定 peer identity" />
+                    <button class="btn btn-primary" id="connectionSendButton">发送</button>
+                  </div>
+                </section>
+              </div>
+
+              <aside class="connection-detail-side">
+                <section class="panel connection-runtime-panel">
+                  <div class="panel-head">
+                    <span class="panel-num">LIVE</span>
+                    <h2>运行数据</h2>
+                  </div>
+                  <div class="connection-stat-list">
+                    <div><span>对端</span><b id="connectionStatClients">0</b></div>
+                    <div><span>接收</span><b id="connectionStatReceived">0</b></div>
+                    <div><span>发送</span><b id="connectionStatSent">0</b></div>
+                    <div><span>最近消息</span><b id="connectionStatLast">--</b></div>
+                  </div>
+                  <div class="connection-error" id="connectionRuntimeError" hidden></div>
+                </section>
+                <section class="panel connection-message-panel">
+                  <div class="panel-head">
+                    <span class="panel-num">TRACE</span>
+                    <h2>最近消息</h2>
+                  </div>
+                  <div class="connection-trace" id="connectionTrace"></div>
+                </section>
+                <button class="btn btn-danger connection-delete-button" id="connectionDeleteButton">删除连接</button>
+              </aside>
+            </section>
+          </section>
+
+          <!-- ============ 06 PLUGIN DETAIL ============ -->
+          <section class="page" id="page-plugin">
+            <header class="page-head">
+              <div class="page-head-num">04</div>
+              <div class="page-head-text">
+                <div class="breadcrumb">
+                  <button class="breadcrumb-link" id="pluginBackButton">02 插件</button>
+                  <span class="breadcrumb-sep">/</span>
+                  <span id="pluginDashboardSubtitle">插件控制台</span>
+                </div>
+                <h1 id="pluginDashboardTitle">插件控制台</h1>
+                <p>配置 · 发布订阅 · 生命周期</p>
+              </div>
+              <div class="page-head-actions">
+                <button class="btn btn-primary btn-sm" id="pluginSaveButton">
+                  保存配置<span class="dirty-dot" hidden></span>
+                </button>
+                <button class="btn btn-danger btn-sm" id="pluginUninstallButton">卸载插件</button>
+              </div>
+            </header>
+
+            <div class="plugin-dashboard-empty" id="pluginDashboardEmpty">
+              <span class="corner tl"></span><span class="corner tr"></span>
+              <span class="corner bl"></span><span class="corner br"></span>
+              还没有选中插件
+            </div>
+
+            <div class="plugin-dashboard" id="pluginDashboardBody" hidden>
+              <section class="panel">
+                <div class="panel-head">
+                  <span class="panel-num">04.A</span>
+                  <h2>插件信息</h2>
+                  <span class="panel-meta" id="pluginDashboardState">--</span>
+                </div>
+                <div class="plugin-hero">
+                  <div class="plugin-hero-cover" id="pluginDashboardCover"></div>
+                  <div class="plugin-hero-text">
+                    <h2 id="pluginDashboardName">--</h2>
+                    <p id="pluginDashboardDescription">--</p>
+                    <div class="plugin-enable-row">
+                      <span class="enable-label">启用状态</span>
+                      <label class="switch">
+                        <input id="pluginEnabledSwitch" type="checkbox" />
+                        <span></span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <div class="meta-grid">
+                  <div class="kv">
+                    <span class="kv-label">ID</span><span class="kv-dots"></span>
+                    <b class="kv-value" id="pluginDashboardId">--</b>
+                  </div>
+                  <div class="kv">
+                    <span class="kv-label">版本</span><span class="kv-dots"></span>
+                    <b class="kv-value" id="pluginDashboardVersion">--</b>
+                  </div>
+                  <div class="kv">
+                    <span class="kv-label">作者</span><span class="kv-dots"></span>
+                    <b class="kv-value" id="pluginDashboardAuthor">--</b>
+                  </div>
+                  <div class="kv">
+                    <span class="kv-label">能力</span><span class="kv-dots"></span>
+                    <b class="kv-value" id="pluginDashboardProvides">--</b>
+                  </div>
+                  <div class="kv kv-wide">
+                    <span class="kv-label">路径</span><span class="kv-dots"></span>
+                    <b class="kv-value" id="pluginDashboardPath">--</b>
+                  </div>
+                </div>
+              </section>
+
+              <section class="panel">
+                <div class="panel-head">
+                  <span class="panel-num">04.B</span>
+                  <h2>插件配置</h2>
+                  <span class="panel-meta">基于 config.schema.json 自动生成</span>
+                </div>
+                <div class="config-form" id="pluginConfigFields"></div>
+              </section>
+
+              <section class="panel">
+                <div class="panel-head">
+                  <span class="panel-num">04.C</span>
+                  <h2>发布 / 订阅</h2>
+                  <button class="btn btn-ghost btn-sm" id="pluginPubsubSaveButton">
+                    保存发布订阅<span class="dirty-dot" hidden></span>
+                  </button>
+                </div>
+                <div class="pubsub-layout">
+                  <section class="pubsub-card">
+                    <div class="pubsub-card-head">
+                      <h3>发布</h3>
+                      <label class="switch">
+                        <input id="pluginPublishEnabled" type="checkbox" />
+                        <span></span>
+                      </label>
+                    </div>
+                    <p class="pubsub-help">插件先声明可发布的 topic，这里控制当前是否启用。</p>
+                    <div class="pubsub-topic-list" id="pluginPublishList"></div>
+                  </section>
+
+                  <section class="pubsub-card">
+                    <div class="pubsub-card-head">
+                      <h3>订阅</h3>
+                    </div>
+                    <p class="pubsub-help">两步选择：先来源插件，再选 topic。</p>
+                    <div class="subscription-builder">
+                      <select id="subscriptionPublisherSelect" class="config-input"></select>
+                      <select id="subscriptionTopicSelect" class="config-input"></select>
+                      <button class="btn btn-ghost btn-sm" id="subscriptionAddButton">添加</button>
+                    </div>
+                    <div class="subscription-list" id="pluginSubscriptionList"></div>
+                  </section>
+                </div>
+              </section>
+            </div>
+          </section>
+        </main>
+
+        <div class="foot-ruler" aria-hidden="true">
+          <span>ASTRBOTEX · INDUSTRIAL CONTROL PANEL</span>
+          <span>POLL 2000MS · SSE LIVE</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <input id="pluginZipInput" type="file" accept=".zip,application/zip" hidden />
+    <input id="archiveZipInput" type="file" accept=".zip,application/zip" hidden />
+    <script src="./app.js?v=20260821-archives"></script>
+  </body>
+</html>

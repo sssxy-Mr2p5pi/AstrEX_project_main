@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+dist/
+build/
+.DS_Store
+Thumbs.db
+profiles/default/plugins_state.json
