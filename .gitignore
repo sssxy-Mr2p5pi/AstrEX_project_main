@@ -1,0 +1,76 @@
+# Local agent/editor state
+.codex/
+.agents/
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+.venv/
+venv/
+
+# Secrets/local config
+.env
+.env.*
+!.env.example
+secrets/
+credentials*.json
+*.pem
+*.key
+
+# JavaScript
+node_modules/
+.pnpm-store/
+
+# ROS 2 generated files
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# Runtime output
+runtime/logs/*
+!runtime/logs/.gitkeep
+
+runtime/rosbag_tmp/*
+!runtime/rosbag_tmp/.gitkeep
+
+# Isaac Sim local/generated work
+sim/usd_work/*
+!sim/usd_work/.gitkeep
+
+# Logs/cache
+*.log
+.cache/
+
+# ROS bag
+*.bag
+*.bag.active
+*.db3
+*.mcap
+
+# Training models
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.engine
+
+# Large/generated binary assets
+*.usdc
+*.usdz
+*.onnx
+
+# Stable assets in this directory use Git LFS
+!sim/assets/versioned/**/*.usdc
+!sim/assets/versioned/**/*.usdz
+!sim/assets/versioned/**/*.onnx
