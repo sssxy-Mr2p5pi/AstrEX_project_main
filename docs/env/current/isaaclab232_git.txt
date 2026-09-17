@@ -1,0 +1,6 @@
+Repository: /home/sssxy/Projects/IsaacLab-2.3.2-test
+Tag: v2.3.2
+HEAD: 37ddf626871758333d6ed89cf64ad702aef127d0
+git status --porcelain at start: empty
+Raw evidence: /data/shared/AstrEX_project_data/logs/isaac/cutover_ezVoq286/before
+This is a source-state snapshot, not a dependency lockfile.

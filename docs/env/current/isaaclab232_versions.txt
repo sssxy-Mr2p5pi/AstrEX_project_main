@@ -1,0 +1,17 @@
+Working snapshot, not an installation lockfile.
+Captured 2026-09-17 during development baseline cutover.
+Environment: isaaclab232_test
+Python: 3.11.16
+Isaac Sim: 5.1.0.0
+Isaac Lab: v2.3.2
+Lab commit: 37ddf626871758333d6ed89cf64ad702aef127d0
+torch: 2.7.0+cu128
+torchvision: 0.22.0+cu128
+torchaudio: 2.7.0+cu128
+rsl-rl-lib: 3.1.2
+Torch CUDA: 12.8
+GPU: NVIDIA RTX PRO 1000 Blackwell Generation Laptop GPU
+System Python: 3.12.3
+System ROS: Jazzy
+Sim ROS: bundled Jazzy
+Raw evidence: /data/shared/AstrEX_project_data/logs/isaac/cutover_ezVoq286

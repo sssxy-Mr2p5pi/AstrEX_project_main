@@ -1,0 +1,419 @@
+"""Official OmniGraph ROS Cartpole profile. No direct-rclpy Sim control path."""
+import argparse
+import json
+import math
+import os
+from pathlib import Path
+import signal
+import time
+import traceback
+import uuid
+
+GRAPH_PREFIX = '/World/AstrEXROSGraph_'
+TICK_STEP_OUT = '/Tick.outputs:step'
+SUBSCRIBE_EXEC_IN = '/Subscribe.inputs:execIn'
+SUBSCRIBE_EXEC_OUT = '/Subscribe.outputs:execOut'
+CONTROLLER_EXEC_IN = '/Controller.inputs:execIn'
+
+
+def json_safe(value):
+    """Event payloads must stay JSON-serializable even when a state check failed."""
+    if isinstance(value, float):
+        return value if math.isfinite(value) else repr(value)
+    if isinstance(value, dict):
+        return {key: json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [json_safe(item) for item in value]
+    return value
+
+
+class CartpoleROS:
+    """Own the demo scene, graph and boundary reset lifecycle."""
+
+    def __init__(self, headless=False):
+        from isaaclab.app import AppLauncher
+        self.run = Path(os.environ['ASTREX_RUN_DIR'])
+        self.headless = headless
+        experience = Path(os.environ['ASTREX_ISAAC_LAB_ROOT']) / os.environ['ASTREX_ISAAC_EXPERIENCE']
+        self.app = AppLauncher(headless=headless, experience=str(experience), kit_args=(
+            f'--/app/userConfigPath={self.run / "user.config.json"} '
+            f'--/log/file={self.run / "kit.log"} '
+            '--/app/settings/persistent=false --/app/settings/loadUserConfig=false')).app
+        self.env = None
+        self.closed = False
+        self.events = (self.run / 'ros_events.jsonl').open('w')
+        self.samples = (self.run / 'ros_samples.jsonl').open('w')
+        self.resets = 0
+        self.steps = 0
+        self.keep_running = True
+        # The ROS graph is process-lifetime: created exactly once, never rebuilt by reset().
+        self.graph_creations = 0
+        self.graph_path = None
+        self.command_gate = 'closed'
+        self.cached_command = None
+        self.fault = None
+        try:
+            self.initialize()
+        except BaseException:
+            self.close()
+            raise
+
+    def initialize(self):
+        import gymnasium as gym
+        import isaaclab_tasks  # noqa: F401
+        import omni.graph.core as og
+        import omni.kit.app
+        import omni.usd
+        import numpy as np
+        import torch
+        import usdrt
+        from isaaclab_tasks.utils import parse_env_cfg
+        from isaacsim.core.prims import SingleArticulation
+        from isaacsim.core.utils.extensions import enable_extension
+        from pxr import UsdPhysics
+        self.og, self.np, self.torch, self.usdrt = og, np, torch, usdrt
+        enable_extension('omni.graph.action')
+        enable_extension('isaacsim.ros2.bridge')
+        manager = omni.kit.app.get_app().get_extension_manager()
+        required = ['isaacsim.core.nodes.OnPhysicsStep', 'isaacsim.core.nodes.IsaacReadSimulationTime',
+                    'isaacsim.ros2.bridge.ROS2PublishClock', 'isaacsim.ros2.bridge.ROS2PublishJointState',
+                    'isaacsim.ros2.bridge.ROS2SubscribeJointState', 'isaacsim.ros2.bridge.ROS2Context',
+                    'isaacsim.core.nodes.IsaacArticulationController']
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline:
+            registered = all(og.GraphRegistry().get_node_type_version(n) > 0 for n in required)
+            if manager.is_extension_enabled('isaacsim.ros2.bridge') and registered:
+                break
+            self.app.update()
+        else:
+            raise RuntimeError('Official Bridge nodes did not register within 30 seconds')
+        cfg = parse_env_cfg('Isaac-Cartpole-Direct-v0', device=os.environ['ASTREX_ROS_DEVICE'], num_envs=1)
+        cfg.seed = 42
+        cfg.sim.dt = 1 / 120
+        cfg.decimation = 2
+        cfg.initial_pole_angle_range = [0.0, 0.0]
+        cfg.scene.clone_in_fabric = False
+        self.env = gym.make('Isaac-Cartpole-Direct-v0', cfg=cfg)
+        self.base = self.env.unwrapped
+        print('ROS_STARTUP_STAGE env_created', flush=True)
+        self.env.reset(seed=42)
+        print('ROS_STARTUP_STAGE env_reset', flush=True)
+        stage = omni.usd.get_context().get_stage()
+        roots = [str(p.GetPath()) for p in stage.Traverse() if p.HasAPI(UsdPhysics.ArticulationRootAPI)]
+        if len(roots) != 1:
+            raise RuntimeError('Expected one articulation root: ' + repr(roots))
+        self.root = roots[0]
+        self.names = list(self.base.cartpole.joint_names)
+        self.cart = self.names.index('slider_to_cart')
+        self.pole = self.names.index('cart_to_pole')
+        self.articulation = SingleArticulation(self.root, reset_xform_properties=False)
+        self.articulation.initialize()
+        print('ROS_STARTUP_STAGE articulation_initialized', flush=True)
+        self.create_graph()
+        self.zero_effort()
+        self.clear_controller_target()
+        print('ROS_STARTUP_STAGE effort_zeroed', flush=True)
+        ours, others = self.graph_prims()
+        if len(ours) != 1 or ours[0] != self.graph_path:
+            raise RuntimeError(f'Expected one AstrEX ROS graph prim: {ours} (others: {others})')
+        self.open_command_acceptance()
+        self.event('ready', graph=self.path, joints=self.names, articulation=self.root,
+                   device=str(self.base.sim.device), dt=cfg.sim.dt, decimation=cfg.decimation,
+                   experience=str(Path(os.environ['ASTREX_ISAAC_LAB_ROOT']) / os.environ['ASTREX_ISAAC_EXPERIENCE']),
+                   gui=not self.headless, domain=os.environ['ROS_DOMAIN_ID'],
+                   num_envs=int(self.base.num_envs), clone_in_fabric=bool(cfg.scene.clone_in_fabric),
+                   pipeline_stage=str(self.og.GraphPipelineStage.GRAPH_PIPELINE_STAGE_ONDEMAND),
+                   trigger_node_type='isaacsim.core.nodes.OnPhysicsStep',
+                   rmw_implementation=os.environ.get('RMW_IMPLEMENTATION')
+                   or os.environ.get('ASTREX_RMW_IMPLEMENTATION', ''),
+                   graph_path=self.graph_path, graph_creations=self.graph_creations,
+                   astrex_graph_count=len(ours), command_gate=self.command_gate,
+                   publish=['/clock', '/joint_states'], subscribe=['/joint_command'])
+        (self.run / 'ready.json').write_text(json.dumps({'graph': self.path, 'pid': os.getpid()}))
+        print('Waiting for ROS commands', flush=True)
+
+    def create_graph(self):
+        # Process-lifetime guard: a second creation would duplicate publishers/subscribers.
+        if self.graph_creations:
+            raise RuntimeError('AstrEX ROS graph already exists; it must not be rebuilt')
+        og, usdrt = self.og, self.usdrt
+        self.path = GRAPH_PREFIX + uuid.uuid4().hex
+        keys = og.Controller.Keys
+        self.graph, _, _, _ = og.Controller.edit(
+            {'graph_path': self.path, 'evaluator_name': 'execution',
+             'pipeline_stage': og.GraphPipelineStage.GRAPH_PIPELINE_STAGE_ONDEMAND}, {
+                keys.CREATE_NODES: [('Tick', 'isaacsim.core.nodes.OnPhysicsStep'),
+                    ('Time', 'isaacsim.core.nodes.IsaacReadSimulationTime'),
+                    ('Clock', 'isaacsim.ros2.bridge.ROS2PublishClock'),
+                    ('Joint', 'isaacsim.ros2.bridge.ROS2PublishJointState'),
+                    ('Subscribe', 'isaacsim.ros2.bridge.ROS2SubscribeJointState'),
+                    ('Controller', 'isaacsim.core.nodes.IsaacArticulationController')],
+                keys.CONNECT: [('Tick.outputs:step', 'Clock.inputs:execIn'),
+                    ('Time.outputs:simulationTime', 'Clock.inputs:timeStamp'),
+                    ('Tick.outputs:step', 'Joint.inputs:execIn'),
+                    ('Time.outputs:simulationTime', 'Joint.inputs:timeStamp'),
+                    ('Tick.outputs:step', 'Subscribe.inputs:execIn'),
+                    ('Subscribe.outputs:execOut', 'Controller.inputs:execIn'),
+                    ('Subscribe.outputs:jointNames', 'Controller.inputs:jointNames'),
+                    ('Subscribe.outputs:positionCommand', 'Controller.inputs:positionCommand'),
+                    ('Subscribe.outputs:velocityCommand', 'Controller.inputs:velocityCommand'),
+                    ('Subscribe.outputs:effortCommand', 'Controller.inputs:effortCommand')],
+                keys.SET_VALUES: [('Clock.inputs:topicName', '/clock'),
+                    ('Joint.inputs:topicName', '/joint_states'),
+                    ('Subscribe.inputs:topicName', '/joint_command'),
+                    ('Subscribe.inputs:queueSize', 1),
+                    ('Time.inputs:resetOnStop', False),
+                    ('Joint.inputs:targetPrim', [usdrt.Sdf.Path(self.root)]),
+                    ('Controller.inputs:targetPrim', [usdrt.Sdf.Path(self.root)])]})
+        self.graph_creations += 1
+        self.graph_path = self.path
+        print('ROS_STARTUP_STAGE graph_created', flush=True)
+
+    def event(self, kind, **fields):
+        row = {'event': kind, 'wall_time': time.time(), 'wall_monotonic': time.monotonic(),
+               'reset_count': self.resets, **fields}
+        self.events.write(json.dumps(row, allow_nan=False) + '\n')
+        self.events.flush()
+        print('ROS_EVENT', json.dumps(row, allow_nan=False), flush=True)
+
+    def zero_effort(self):
+        # This writes the real PhysX command through the official articulation API.
+        # The articulation view uses the torch backend: a numpy array raises
+        # "unsqueeze(): argument 'input' must be Tensor" before PhysX is reached.
+        device = getattr(self.articulation, '_device', None) or self.base.sim.device
+        self.articulation.set_joint_efforts(
+            self.torch.zeros(len(self.names), dtype=self.torch.float32, device=device))
+        # Clear Lab's buffer too: env.reset() flushes scene data once.
+        self.base.cartpole.set_joint_effort_target(self.torch.zeros_like(self.base.cartpole.data.joint_pos))
+
+    def snapshot(self):
+        q = self.base.cartpole.data.joint_pos[0].tolist()
+        v = self.base.cartpole.data.joint_vel[0].tolist()
+        if not all(math.isfinite(x) for x in q + v):
+            raise RuntimeError('Nonfinite Cartpole state')
+        get = self.og.Controller.get
+        return {'physics_step': self.steps, 'reset_count': self.resets,
+                'simulation_time': float(get(self.path + '/Time.outputs:simulationTime')),
+                'joint_names': self.names, 'position': q, 'velocity': v,
+                'subscriber_effort': list(get(self.path + '/Subscribe.outputs:effortCommand')),
+                'controller_effort': list(get(self.path + '/Controller.inputs:effortCommand')),
+                'computed_effort': None, 'applied_effort': None,
+                'effort_note': 'N/A: Lab buffers do not measure the OmniGraph control path'}
+
+    def boundary_reason(self, row):
+        reasons = []
+        if abs(row['position'][self.cart]) > self.base.cfg.max_cart_pos:
+            reasons.append('cart_position')
+        if abs(row['position'][self.pole]) > math.pi / 2:
+            reasons.append('pole_angle')
+        return reasons
+
+    def graph_prims(self):
+        """AstrEX ROS graph roots; other OmniGraph prims are reported but never asserted on."""
+        import omni.usd
+        stage = omni.usd.get_context().get_stage()
+        ours, others = [], []
+        for prim in stage.Traverse():
+            if prim.GetTypeName() != 'OmniGraph':
+                continue
+            path = str(prim.GetPath())
+            (ours if path.startswith(GRAPH_PREFIX) else others).append(path)
+        return sorted(ours), sorted(others)
+
+    def command_acceptance_links(self):
+        """Upstream exec links of the controller; the gate is the only thing that changes them."""
+        try:
+            links = self.og.Controller.attribute(
+                self.path + CONTROLLER_EXEC_IN).get_upstream_connections()
+            return sorted(link.get_path() for link in links)
+        except Exception as exc:
+            return ['<query failed: ' + repr(exc) + '>']
+
+    def subscriber_compute_links(self):
+        """Upstream exec links of the subscriber node itself (the reset window freezes them)."""
+        try:
+            links = self.og.Controller.attribute(
+                self.path + SUBSCRIBE_EXEC_IN).get_upstream_connections()
+            return sorted(link.get_path() for link in links)
+        except Exception as exc:
+            return ['<query failed: ' + repr(exc) + '>']
+
+    def close_command_acceptance(self):
+        """Freeze the subscriber compute and the controller exec link; the DDS subscription stays alive."""
+        keys = self.og.Controller.Keys
+        pairs = []
+        source = self.path + SUBSCRIBE_EXEC_OUT
+        if source in self.command_acceptance_links():
+            pairs.append((source, self.path + CONTROLLER_EXEC_IN))
+        tick = self.path + TICK_STEP_OUT
+        if tick in self.subscriber_compute_links():
+            pairs.append((tick, self.path + SUBSCRIBE_EXEC_IN))
+        if pairs:
+            self.og.Controller.edit(self.path, {keys.DISCONNECT: pairs})
+        self.command_gate = 'closed'
+        self.cached_command = None
+        state = {'links': self.command_acceptance_links(),
+                 'compute_links': self.subscriber_compute_links()}
+        self.event('command_gate_closed', **state)
+        return state
+
+    def open_command_acceptance(self):
+        """Restore acceptance; commands received inside the window are consumed but not applied."""
+        keys = self.og.Controller.Keys
+        tick = self.path + TICK_STEP_OUT
+        if tick not in self.subscriber_compute_links():
+            self.og.Controller.edit(self.path, {keys.CONNECT: [(tick, self.path + SUBSCRIBE_EXEC_IN)]})
+            # One step lets the subscriber consume any message received while the gate was closed;
+            # its execution output has no controller connection at this point, so nothing is applied.
+            self.base.sim.step(render=not self.headless)
+            self.base.scene.update(self.base.cfg.sim.dt)
+        source = self.path + SUBSCRIBE_EXEC_OUT
+        if source not in self.command_acceptance_links():
+            self.og.Controller.edit(self.path, {keys.CONNECT: [(source, self.path + CONTROLLER_EXEC_IN)]})
+        self.command_gate = 'open'
+        state = {'links': self.command_acceptance_links(),
+                 'compute_links': self.subscriber_compute_links()}
+        self.event('command_gate_opened', **state)
+        return state
+
+    def clear_controller_target(self):
+        """Zero the graph-side command cache through the official controller inputs."""
+        self.og.Controller.edit(self.path, {self.og.Controller.Keys.SET_VALUES: [
+            (f'{self.path}/Controller.inputs:positionCommand', []),
+            (f'{self.path}/Controller.inputs:velocityCommand', []),
+            (f'{self.path}/Controller.inputs:effortCommand', [0.0] * len(self.names)),
+            (f'{self.path}/Controller.inputs:jointNames', self.names)]})
+        self.cached_command = None
+
+    def verify_reset_state(self, boundary_time):
+        """Every check must pass before command acceptance is restored."""
+        row = self.snapshot()
+        ours, others = self.graph_prims()
+        # The controller inputs are connected to the subscriber, so reading them back resolves
+        # upstream; the authoritative "target cleared" evidence is the articulation API read-back.
+        target = self.articulation.get_applied_joint_efforts().detach().cpu().tolist()
+        checks = {
+            'astrex_graph_count_is_one': len(ours) == 1 and ours[0] == self.graph_path,
+            'graph_path_unchanged': self.graph_path == self.path,
+            'graph_creations_is_one': self.graph_creations == 1,
+            'state_finite': all(math.isfinite(value) for value in row['position'] + row['velocity']),
+            'position_at_rest': all(abs(value) < 1e-3 for value in row['position']),
+            'velocity_at_rest': all(abs(value) < 1e-2 for value in row['velocity']),
+            'articulation_effort_target_cleared': all(abs(value) < 1e-6 for value in target),
+            'command_gate_closed': self.command_gate == 'closed',
+            'simulation_time_not_rewound': row['simulation_time'] >= boundary_time - 1e-9,
+        }
+        return all(checks.values()), checks, row, ours, others
+
+    def latch_fault(self, kind, **fields):
+        """Any reset failure keeps acceptance CLOSED; control is never restored automatically."""
+        try:
+            self.zero_effort()
+        except BaseException as exc:
+            fields['zero_effort_error'] = repr(exc)
+        self.command_gate = 'closed'
+        self.cached_command = None
+        payload = json_safe(fields)
+        payload['command_gate'] = self.command_gate
+        payload['links'] = self.command_acceptance_links()
+        self.fault = {'kind': kind, 'reset_count': self.resets, 'graph_path': self.graph_path,
+                      'fields': payload}
+        try:
+            self.event('reset_failed', fault_kind=kind, **payload)
+        except BaseException as exc:
+            print('ROS_FAULT_EVENT_FAILED ' + repr(exc), flush=True)
+        (self.run / 'fault.json').write_text(json.dumps(self.fault, indent=2, default=str))
+        print('ROS_FAULT_LATCHED ' + kind, flush=True)
+
+    def reset(self, reason, hold=True):
+        """Episode lifecycle only: the process-lifetime graph is never rebuilt or deleted."""
+        old = self.snapshot()
+        boundary_time = old['simulation_time']
+        try:
+            self.close_command_acceptance()
+            self.zero_effort()
+            self.clear_controller_target()
+            self.event('boundary' if reason != ['test_reset'] else 'test_reset', reason=reason,
+                       terminated=reason != ['test_reset'], previous=old,
+                       reset_effort_target=[0.0] * len(self.names))
+            if hold and not self.headless:
+                deadline = time.monotonic() + 0.3
+                while time.monotonic() < deadline and self.app.is_running():
+                    self.base.sim.render()
+                    time.sleep(0.01)
+            self.env.reset(seed=42)
+            self.zero_effort()
+            self.clear_controller_target()
+            self.base.scene.update(self.base.cfg.sim.dt)
+            self.resets += 1
+            verified, checks, row, ours, others = self.verify_reset_state(boundary_time)
+            if not verified:
+                self.latch_fault('reset_verification_failed', checks=checks, state=row,
+                                 other_omnigraph_prims=others)
+                return False
+            self.open_command_acceptance()
+            self.event('reset_ready', reason=reason, state=self.snapshot(),
+                       reset_effort_target=[0.0] * len(self.names),
+                       graph_path=self.graph_path, graph_creations=self.graph_creations,
+                       astrex_graph_count=len(ours), other_omnigraph_prims=others,
+                       command_gate=self.command_gate, verified=True, checks=checks)
+            print('Waiting for ROS commands', flush=True)
+            return True
+        except BaseException:
+            self.latch_fault('reset_exception', error=traceback.format_exc())
+            return False
+
+    def step(self):
+        self.base.sim.step(render=not self.headless)
+        self.base.scene.update(self.base.cfg.sim.dt)
+        self.steps += 1
+        row = self.snapshot()
+        row['boundary'] = self.boundary_reason(row)
+        self.samples.write(json.dumps(row, allow_nan=False) + '\n')
+        if self.steps % 120 == 0:
+            self.samples.flush()
+        if row['boundary'] and self.fault is None:
+            self.reset(row['boundary'])
+        return row
+
+    def close(self):
+        if self.closed:
+            return
+        self.closed = True
+        try:
+            if self.env is not None:
+                if hasattr(self, 'articulation'):
+                    self.zero_effort()
+                self.env.close()
+        finally:
+            self.events.close()
+            self.samples.close()
+            self.app.close()
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--headless', action='store_true')
+    args = parser.parse_args()
+    runtime = CartpoleROS(headless=args.headless)
+    def stop(signum, frame):
+        runtime.keep_running = False
+    signal.signal(signal.SIGINT, stop)
+    signal.signal(signal.SIGTERM, stop)
+    try:
+        import psutil
+        process = psutil.Process()
+        last_monitor = 0.0
+        while runtime.app.is_running() and runtime.keep_running:
+            started = time.monotonic()
+            runtime.step()
+            if started - last_monitor >= 10:
+                runtime.event('monitor', rss_bytes=process.memory_info().rss)
+                last_monitor = started
+            time.sleep(max(0.0, runtime.base.cfg.sim.dt - (time.monotonic() - started)))
+    finally:
+        runtime.close()
+
+
+if __name__ == '__main__':
+    main()
