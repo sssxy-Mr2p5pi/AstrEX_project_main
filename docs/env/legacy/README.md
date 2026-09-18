@@ -3,7 +3,7 @@
 本目录的文件只是 **HISTORICAL SNAPSHOT**，**不代表当前开发环境**。
 
 当前 AstrEX Isaac 基线是 `isaaclab232_test` / Isaac Sim 5.1 / Isaac Lab v2.3.2，规范见
-[`docs/ISAAC_51_DEV_BASELINE.md`](../ISAAC_51_DEV_BASELINE.md)；当前环境的快照在
+[`docs/ISAAC_51_DEV_BASELINE.md`](../../ISAAC_51_DEV_BASELINE.md)；当前环境的快照在
 [`docs/env/current/`](../current/)。
 
 `isaaclab60_final_freeze.txt`、`isaaclab60_6010test_final_freeze.txt`、
@@ -27,15 +27,14 @@
 `isaaclab60_final_freeze.txt` **SHA256 完全一致**（`a5e65288c7072de18278811eb495639ba2dad06f281267656ba2e4d8e51f5bd7`），
 conda export 的包集合与 278 条 pip 记录也完全一致，即两个时间点描述的是同一环境状态。
 因此按"不保留两套重复 legacy snapshot"处理：只保留本目录的 final 快照，原两份根目录副本已删除，
-[ISAAC_ENV_FIX_RESULT.md](../ISAAC_ENV_FIX_RESULT.md) 的链接已迁移到本目录对应文件。
+[`docs/ISAAC_HISTORICAL.md`](../../ISAAC_HISTORICAL.md) 的链接已迁移到本目录对应文件。
 
 ## 删除原因与恢复方式
 
 两个环境是 LEGACY / MIGRATION_ONLY，不再是 AstrEX 默认环境；`isaaclab60` 的 editable install 指向旧
 Lab 源码、`isaaclab60_6010test` 指向隔离验证克隆，删除环境后两处源码均无引用。删除前已保存上述纯
 package snapshot 与版本信息，最终测试结论见
-[`docs/ISAAC_PHYSX_AB_RESULT.md`](../ISAAC_PHYSX_AB_RESULT.md) 与
-[`docs/ISAAC_ENV_FIX_RESULT.md`](../ISAAC_ENV_FIX_RESULT.md)（两份报告均已标记 HISTORICAL）。
+[`docs/ISAAC_HISTORICAL.md`](../../ISAAC_HISTORICAL.md) 的 §3/§4（四份早期报告的合并记录与结论）。
 
 如需恢复：按上表重新安装 Isaac Sim 6.0.0.1 / 6.0.1.0 与 Isaac Lab v3.0.0-beta2.patch1
 （commit `ffff603eafc6b74264a5261cc0183d6a65390d78`），再按对应 `*_final_freeze.txt` /

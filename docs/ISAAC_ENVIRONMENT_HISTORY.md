@@ -14,8 +14,8 @@
 
 当前基线环境的原始快照在 [`docs/env/current/`](env/current/)，两个 Isaac 6 环境的删除前 package snapshot 与说明在 [`docs/env/legacy/`](env/legacy/README.md)。历史验证的原始大数据已归档到 `/data/shared/AstrEX_project_data/archives/isaac/2026-09-baseline-consolidation/`，原路径与现路径的映射见该目录的 `MANIFEST.json`（含保留在原处与被删除的路径）。
 
-两个 Isaac 6 环境的历史同条件 effort 测试均 FAIL。该结果没有证明 Sim 版本是原因。详见 [A/B 原始报告](ISAAC_PHYSX_AB_RESULT.md)。
+两个 Isaac 6 环境的历史同条件 effort 测试均 FAIL。该结果没有证明 Sim 版本是原因。详见 [Isaac 历史验证（合并记录）](ISAAC_HISTORICAL.md#4-isaac-6-physx-joint-effort-ab)。
 
-Isaac 5.1 的完整验收和限制保留在 [原始报告](ISAAC_51_BASELINE_FIX_RESULT.md)。其中长期稳定性结论不因开发用途切换而改写。
+Isaac 5.1 的完整验收和限制保留在 [Isaac 历史验证（合并记录）](ISAAC_HISTORICAL.md#1-isaac-51--isaac-lab-232-基线验收2026-09-17)；四份早期报告的全文归档在 data archive 的 `historical_reports/`，长期稳定性结论不因开发用途切换而改写。
 
 本次不删除、重命名或克隆任何环境。默认入口不使用 Isaac 6。后续迁移必须建立独立环境并完成同等功能验收，不在当前基线上原地升级。
