@@ -200,3 +200,103 @@ def test_reference_has_known_midpoint_peak_velocity_and_fixed_endpoint():
     assert assessor._reference(0.0, -0.3, 11.25, 0.05)[:2] == (-0.3, 0.0)
     assert assessor._reference(0.0, 0.5, 100.0, 0.05)[:2] == (0.5, 0.0)
     assert assessor._reference(0.3, 0.3, 0.0, 0.05) == (0.3, 0.0, 0.0)
+
+
+def test_gui_half_step_feedback_uses_derived_measured_bracket_without_widening_tolerance():
+    dt = 1.0 / 120.0
+    times = [1.0, 1.0 + 2*dt]
+    states = [(0.0, 0.05, 0.0, 0.0), (0.05*2*dt, 0.05, 0.0, 0.0)]
+    timestamp = 1.0 + dt
+    feedback = (0.05*dt, 0.05, 0.0, 0.0)
+    # Neither measured endpoint is within the unchanged 0.2 mm state tolerance.
+    assert all(abs(state[0] - feedback[0]) > 0.0002 for state in states)
+    aligned, offset, span, method = assessor._aligned_measured_state(
+        times, states, timestamp, 2*dt)
+    assert aligned == pytest.approx(feedback)
+    assert offset == pytest.approx(dt)
+    assert span == pytest.approx(2*dt)
+    assert method == 'bracket_linear_resampling'
+
+
+@pytest.mark.parametrize('timestamp,times', [
+    (0.99, [1.0, 1.0+2/120]),  # No extrapolation before the first measurement.
+    (1.03, [1.0, 1.0+2/120]),  # No extrapolation after the last measurement.
+    (1.01, [1.0, 1.0+3/120]),  # A bracket wider than two physics steps is rejected.
+])
+def test_measured_state_alignment_rejects_extrapolation_and_large_gaps(timestamp, times):
+    assert assessor._aligned_measured_state(times, [(0.0,)*4, (1.0,)*4],
+                                            timestamp, 2/120) is None
+
+
+def test_exact_sample_wins_over_derived_state():
+    exact = (0.1, 0.2, 0.3, 0.4)
+    aligned = assessor._aligned_measured_state([1.0, 1.0+2/120],
+                                               [exact, (0.0,)*4], 1.0, 2/120)
+    assert aligned == (exact, 0.0, 0.0, 'exact')
+
+
+@pytest.mark.parametrize('angle,passed', [(0.0, True), (0.01, False)])
+def test_initialization_readback_is_anchor_without_reusing_pre_reset_rest(tmp_path, angle, passed):
+    data = _dataset(tmp_path)
+    # No raw sample exists at the first feedback timestamp. Only the genuine
+    # post-initialization readback can anchor it; pre-reset rest is not reused.
+    data[4].pop(0)
+    data[5][0]['state'] = {'simulation_time': 1.0,
+                          'joint_names': ['slider_to_cart', 'cart_to_pole'],
+                          'position': [0.0, angle], 'velocity': [0.0, 0.0]}
+    data[5][0]['physx_readback'] = {'position': [0.0, angle], 'velocity': [0.0, 0.0]}
+    report = _assess(data)
+    assert report['passed'] is passed
+    assert report['initialization_measured_anchor_time_sec'] == 1.0
+    if not passed:
+        assert 'feedback_state_differs_from_time_aligned_isaac_joint_state' in report['issues']
+
+
+def _dense_rows(data):
+    return [dict(json.loads(json.dumps(row)), logging_source='physx_post_physics_step_single_articulation')
+            for row in data[4]]
+
+
+def test_dense_physics_source_uses_exact_feedback_times_without_resampling(tmp_path):
+    data = _dataset(tmp_path, combined=True)
+    _write_rows(data[1]/'ros_physics_samples.jsonl', _dense_rows(data))
+    report = _assess(data)
+    assert report['passed'], report['issues']
+    assert report['feedback_alignment_source'] == 'ros_physics_samples.jsonl'
+    assert report['dense_physics_source_present'] is True
+    assert report['feedback_derived_resampling_count'] == 0
+    assert report['feedback_exact_sample_count'] > 0
+    assert report['feedback_state_tolerance'] == 0.0002
+    assert report['dense_logging_sources'] == ['physx_post_physics_step_single_articulation']
+
+
+@pytest.mark.parametrize('defect,issue', [
+    ('missing', 'dense_feedback_without_exact_physics_sample'),
+    ('empty', 'dense_feedback_without_exact_physics_sample'),
+    ('wrong_source', 'dense_source_not_post_physics_measurements'),
+    ('state', 'feedback_state_differs_from_time_aligned_isaac_joint_state'),
+])
+def test_incomplete_or_bad_dense_source_never_falls_back_to_valid_sparse_data(tmp_path, defect, issue):
+    data = _dataset(tmp_path)
+    dense = _dense_rows(data)
+    if defect == 'missing':
+        dense.pop(8)
+    elif defect == 'empty':
+        dense.clear()
+    elif defect == 'wrong_source':
+        dense[8]['logging_source'] = 'derived_or_unknown'
+    else:
+        dense[8]['position'][0] = 0.01
+    _write_rows(data[1]/'ros_physics_samples.jsonl', dense)
+    report = _assess(data)
+    assert not report['passed']
+    assert issue in report['issues']
+    assert report['feedback_alignment_source'] == 'ros_physics_samples.jsonl'
+    assert report['feedback_derived_resampling_count'] == 0
+
+
+def test_malformed_dense_json_is_an_input_failure_not_sparse_fallback(tmp_path):
+    data = _dataset(tmp_path)
+    (data[1]/'ros_physics_samples.jsonl').write_text('{broken}\n')
+    with pytest.raises(ValueError, match='ros_physics_samples.jsonl:1: invalid JSON'):
+        _assess(data)

@@ -141,6 +141,34 @@ def _saturation(calculations, final_stamp):
     return total, longest
 
 
+def _aligned_measured_state(times, states, timestamp, max_offset_sec):
+    """Time-align measured samples; never extrapolate or integrate dynamics.
+
+    ROS publishes each physics step. A GUI sample can cover two physics steps.
+    At an unlogged midpoint, linearly resample the two measured endpoints.
+    This derived state is not an additional raw measurement.
+    """
+    index = bisect_left(times, timestamp)
+    precision_sec = 1e-8  # Timestamp float/nanosecond representation only.
+    exact = [j for j in (index-1, index) if 0 <= j < len(times)
+             and abs(times[j] - timestamp) <= precision_sec]
+    if exact:
+        selected = min(exact, key=lambda j: abs(times[j] - timestamp))
+        return states[selected], abs(times[selected] - timestamp), 0.0, 'exact'
+    if index <= 0 or index >= len(times):
+        return None
+    left, right = index-1, index
+    span = times[right] - times[left]
+    if (span <= 0 or span > max_offset_sec + precision_sec
+            or timestamp - times[left] > max_offset_sec + precision_sec
+            or times[right] - timestamp > max_offset_sec + precision_sec):
+        return None
+    fraction = (timestamp - times[left]) / span
+    state = tuple(a + fraction * (b-a) for a, b in zip(states[left], states[right]))
+    offset = max(timestamp-times[left], times[right]-timestamp)
+    return state, offset, span, 'bracket_linear_resampling'
+
+
 def _config(path):
     config = json.loads(path.read_text(encoding='utf-8'))
     task = config.get('task', 'hold')
@@ -181,7 +209,12 @@ def assess_trial(trial_dir):
     isaac_dir = Path(config['isaac_run_dir'])
     if not isaac_dir.is_absolute():
         isaac_dir = trial_dir / isaac_dir
-    samples = _jsonl(isaac_dir / 'ros_samples.jsonl')
+    dense_path = isaac_dir / 'ros_physics_samples.jsonl'
+    dense_samples = dense_path.exists()
+    sample_path = dense_path if dense_samples else isaac_dir / 'ros_samples.jsonl'
+    # A present dense source is authoritative. Invalid or incomplete dense
+    # evidence cannot be hidden by falling back to the older GUI snapshots.
+    samples = _jsonl(sample_path)
     events = _jsonl(isaac_dir / 'ros_events.jsonl')
     ready = json.loads((isaac_dir / 'ready.json').read_text(encoding='utf-8'))
     dry = config.get('dry_run', False)
@@ -246,7 +279,6 @@ def assess_trial(trial_dir):
     physics_dt = _finite(ready, 'dt') if 'dt' in ready else 1.0 / 120.0
     if physics_dt <= 0:
         raise ValueError('Isaac physics timestep must be positive')
-    match_time_limit = 2.0 * physics_dt + EPS
     corridor_low = max(track_low, min(reference_start, target) - 0.25)
     corridor_high = min(track_high, max(reference_start, target) + 0.25)
     if not track_low < target < track_high:
@@ -417,14 +449,42 @@ def assess_trial(trial_dir):
         issues.append('active_local_execution_timeout')
 
     max_controller = 0.0
+    dense_logging_sources = set()
     sample_times = []
     sample_states = []
     zero_seen = False
     reset_counts = set()
+    initialization_anchor = None
+    alignment_start = first_stamp / 1e9 - 2.0 * physics_dt
+    if not dry and len(init_events) == 1:
+        initialization_state = init_events[0].get('state', {})
+        initialized_time = initialization_state.get('simulation_time')
+        if isinstance(initialized_time, (int, float)) and math.isfinite(initialized_time):
+            alignment_start = max(alignment_start, initialized_time)
+            names = initialization_state.get('joint_names', [])
+            measured = init_events[0].get('physx_readback', initialization_state)
+            if names.count('slider_to_cart') == 1 and names.count('cart_to_pole') == 1:
+                cart, pole = names.index('slider_to_cart'), names.index('cart_to_pole')
+                values = tuple(float(measured[key][index]) for key, index in (
+                    ('position', cart), ('velocity', cart), ('position', pole), ('velocity', pole)))
+                if not all(math.isfinite(value) for value in values):
+                    raise ValueError('initialization measured-state anchor is not finite')
+                initialization_anchor = (initialized_time, values)
     for row in samples:
         t = _finite(row, 'simulation_time')
-        if not first_stamp / 1e9 - EPS <= t <= final_stamp / 1e9 + 0.2 + EPS:
+        if not alignment_start - EPS <= t <= final_stamp / 1e9 + 0.2 + EPS:
             continue
+        if dense_samples:
+            source = row.get('logging_source')
+            if source != 'physx_post_physics_step_single_articulation':
+                issues.append('dense_source_not_post_physics_measurements')
+            if isinstance(source, str):
+                dense_logging_sources.add(source)
+        # A pre-reset rest sample can have the same simulation timestamp as the
+        # discontinuous state write. The post-write readback is its only anchor.
+        if initialization_anchor is not None and t <= initialization_anchor[0] + EPS:
+            continue
+        active_sample = first_stamp / 1e9 - EPS <= t <= final_stamp / 1e9 + EPS
         names = row['joint_names']
         if names.count('slider_to_cart') != 1 or names.count('cart_to_pole') != 1:
             issues.append('isaac_joint_names_invalid')
@@ -436,16 +496,19 @@ def assess_trial(trial_dir):
             issues.append('nonfinite_isaac_state_or_controller_input')
             continue
         cart_force, pole_force = values[4], values[5]
-        max_controller = max(max_controller, abs(cart_force))
+        if active_sample:
+            max_controller = max(max_controller, abs(cart_force))
         if abs(cart_force) > FORCE_LIMIT_N + EPS:
             issues.append('isaac_controller_input_over_5_n')
         if abs(pole_force) > EPS:
             issues.append('isaac_pole_controller_input_nonzero')
         if dry and (abs(cart_force) > EPS or abs(pole_force) > EPS):
             issues.append('dry_run_controller_input_nonzero')
-        if t <= final_stamp / 1e9 + EPS:
-            sample_times.append(t)
-            sample_states.append((values[0], values[2], values[1], values[3]))
+        # Post-exit samples may bracket the final half-step feedback. They do
+        # not extend the active-task fault, reset or peak-force interval.
+        sample_times.append(t)
+        sample_states.append((values[0], values[2], values[1], values[3]))
+        if active_sample:
             reset_counts.add(row.get('reset_count'))
             if not dry and not corridor_low - EPS <= values[0] <= corridor_high + EPS:
                 issues.append('isaac_cart_path_or_track_boundary')
@@ -453,36 +516,49 @@ def assess_trial(trial_dir):
                 issues.append('isaac_pole_angle_boundary')
             if row.get('boundary'):
                 issues.append('isaac_boundary')
-        elif abs(cart_force) <= EPS and abs(pole_force) <= EPS:
+        elif t > final_stamp / 1e9 + EPS and abs(cart_force) <= EPS and abs(pole_force) <= EPS:
             zero_seen = True
-        elif zero_seen:
+        elif t > final_stamp / 1e9 + EPS and zero_seen:
             issues.append('isaac_effort_replayed_after_exit_zero')
+    if initialization_anchor is not None and not dense_samples:
+        sample_times.insert(0, initialization_anchor[0])
+        sample_states.insert(0, initialization_anchor[1])
     if not sample_times:
         issues.append('no_aligned_isaac_samples')
     if len(reset_counts) != 1:
         issues.append('isaac_reset_count_changed')
     max_feedback_time_error = 0.0
     max_feedback_state_error = [0.0, 0.0, 0.0, 0.0]
+    exact_match_count = resampled_match_count = 0
+    max_resampling_span = 0.0
     for row in feedback:
         t = row['stamp_ns'] / 1e9
-        i = bisect_left(sample_times, t)
-        nearest = min((abs(sample_times[j] - t) for j in (i-1, i)
-                       if 0 <= j < len(sample_times)), default=math.inf)
-        if nearest > match_time_limit:
-            issues.append('feedback_without_aligned_isaac_sample')
+        if dense_samples:
+            index = bisect_left(sample_times, t)
+            exact = [j for j in (index-1, index) if 0 <= j < len(sample_times)
+                     and abs(sample_times[j] - t) <= 1e-8]
+            if exact:
+                selected = min(exact, key=lambda j: abs(sample_times[j] - t))
+                aligned = (sample_states[selected], abs(sample_times[selected]-t), 0.0, 'exact')
+            else:
+                aligned = None
+        else:
+            aligned = _aligned_measured_state(sample_times, sample_states, t, 2.0 * physics_dt)
+        if aligned is None:
+            issues.append('dense_feedback_without_exact_physics_sample' if dense_samples
+                          else 'feedback_without_aligned_isaac_sample')
             break
-        left = bisect_left(sample_times, t - match_time_limit)
-        right = bisect_left(sample_times, t + match_time_limit)
+        measured_state, offset, span, method = aligned
         observed = tuple(row[key] for key in ('x', 'x_dot', 'theta', 'theta_dot'))
-        matching = [j for j in range(left, right) if all(
-            abs(a-b) <= 0.0002 for a, b in zip(observed, sample_states[j]))]
-        if not matching:
+        if not all(abs(a-b) <= 0.0002 for a, b in zip(observed, measured_state)):
             issues.append('feedback_state_differs_from_time_aligned_isaac_joint_state')
             break
-        selected_index = min(matching, key=lambda j: abs(sample_times[j] - t))
-        max_feedback_time_error = max(max_feedback_time_error, abs(sample_times[selected_index] - t))
+        exact_match_count += method == 'exact'
+        resampled_match_count += method == 'bracket_linear_resampling'
+        max_resampling_span = max(max_resampling_span, span)
+        max_feedback_time_error = max(max_feedback_time_error, offset)
         max_feedback_state_error = [max(previous, abs(a-b)) for previous, a, b in zip(
-            max_feedback_state_error, observed, sample_states[selected_index])]
+            max_feedback_state_error, observed, measured_state)]
     if not zero_seen:
         issues.append('isaac_exit_zero_unverified')
     for event in events:
@@ -513,6 +589,17 @@ def assess_trial(trial_dir):
             'max_feedback_sample_time_error_sec': max_feedback_time_error,
             'max_feedback_state_error': dict(zip(('x', 'x_dot', 'theta', 'theta_dot'), max_feedback_state_error)),
             'feedback_sample_time_limit_sec': 2.0 * physics_dt,
+            'feedback_alignment_method': ('exact per-physics measured sample; no resampling'
+                                          if dense_samples else 'exact timestamp or bracket-linear measured-state resampling; no extrapolation'),
+            'feedback_alignment_source': sample_path.name,
+            'dense_physics_source_present': dense_samples,
+            'dense_logging_sources': sorted(dense_logging_sources),
+            'feedback_exact_sample_count': exact_match_count,
+            'feedback_derived_resampling_count': resampled_match_count,
+            'max_feedback_resampling_span_sec': max_resampling_span,
+            'initialization_measured_anchor_time_sec': (initialization_anchor[0]
+                                                      if initialization_anchor and not dense_samples else None),
+            'feedback_state_tolerance': 0.0002,
             'applied_effort': 'N/A: Controller input is not measured PhysX applied effort'}
 
 

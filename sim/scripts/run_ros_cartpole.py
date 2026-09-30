@@ -75,6 +75,10 @@ class CartpoleROS:
         self.closed = False
         self.events = (self.run / 'ros_events.jsonl').open('w')
         self.samples = (self.run / 'ros_samples.jsonl').open('w')
+        self.physics_samples = (self.run / 'ros_physics_samples.jsonl').open('w')
+        self.physics_callback_id = None
+        self.physics_sample_count = 0
+        self.physics_log_error = None
         self.resets = 0
         self.steps = 0
         self.keep_running = True
@@ -147,6 +151,7 @@ class CartpoleROS:
         self.articulation.initialize()
         print('ROS_STARTUP_STAGE articulation_initialized', flush=True)
         self.create_graph()
+        self._register_physics_logger()
         if self.trial is not None:
             # Let the bridge create its DDS endpoints on one zero-state physics step,
             # but disconnect Controller execution before Subscribe can run.
@@ -317,6 +322,79 @@ class CartpoleROS:
                 'controller_effort': list(get(self.path + '/Controller.inputs:effortCommand')),
                 'computed_effort': None, 'applied_effort': None,
                 'effort_note': 'N/A: Lab buffers do not measure the OmniGraph control path'}
+
+    def _register_physics_logger(self):
+        """Observe every completed physics step, including GUI substeps."""
+        from isaacsim.core.simulation_manager import IsaacEvents, SimulationManager
+        self.physics_manager = SimulationManager
+        self.physics_callback_id = SimulationManager.register_callback(
+            self._record_physics_sample, event=IsaacEvents.POST_PHYSICS_STEP,
+            order=1000, name='astrex_readonly_physics_samples')
+        self.event('physics_logging_started',
+                   logging_source='physx_post_physics_step_single_articulation',
+                   path=str(self.run / 'ros_physics_samples.jsonl'),
+                   callback_order=1000, timestamp_source='Time.outputs:simulationTime')
+
+    def _physics_logging_failed(self, exc):
+        self.physics_log_error = repr(exc)
+        self.keep_running = False
+        try:
+            self.event('physics_log_failed', error=self.physics_log_error,
+                       physics_sample_count=self.physics_sample_count)
+        except BaseException:
+            print('PHYSICS_LOG_FAILED ' + self.physics_log_error, flush=True)
+
+    def _record_physics_sample(self, step_dt):
+        """Read the live PhysX view; never step, control or refresh Lab state here."""
+        if self.closed or self.physics_log_error is not None:
+            return
+        try:
+            position = self.articulation.get_joint_positions()
+            velocity = self.articulation.get_joint_velocities()
+            if position is None or velocity is None:
+                raise RuntimeError('Post-physics articulation read-back unavailable')
+            position = [float(value) for value in position.tolist()]
+            velocity = [float(value) for value in velocity.tolist()]
+            if len(position) != len(self.names) or len(velocity) != len(self.names):
+                raise RuntimeError('Post-physics joint state does not match joint names')
+            get = self.og.Controller.get
+            simulation_time = float(get(self.path + '/Time.outputs:simulationTime'))
+            manager_time = float(self.physics_manager.get_simulation_time())
+            dt = float(step_dt)
+            if (not all(math.isfinite(value) for value in
+                        position + velocity + [simulation_time, manager_time, dt]) or dt <= 0):
+                raise RuntimeError('Post-physics state or timestamps are nonfinite/invalid')
+            subscriber = [float(value) for value in get(self.path + '/Subscribe.outputs:effortCommand')]
+            controller = [float(value) for value in get(self.path + '/Controller.inputs:effortCommand')]
+            if not all(math.isfinite(value) for value in subscriber + controller):
+                raise RuntimeError('Post-physics graph command is nonfinite')
+            row = {'physics_step': int(self.physics_manager.get_num_physics_steps()),
+                   'physics_sample': self.physics_sample_count + 1,
+                   'outer_loop_step': self.steps, 'reset_count': self.resets,
+                   'simulation_time': simulation_time, 'manager_simulation_time': manager_time,
+                   'callback_delta_sim_sec': dt,
+                   'logging_source': 'physx_post_physics_step_single_articulation',
+                   'joint_names': self.names, 'position': position, 'velocity': velocity,
+                   'subscriber_effort': subscriber, 'controller_effort': controller,
+                   'computed_effort': None, 'applied_effort': None,
+                   'effort_note': 'N/A: Controller input is not measured PhysX applied effort'}
+            row['boundary'] = self.boundary_reason(row)
+            self.physics_samples.write(json.dumps(row, allow_nan=False) + '\n')
+            self.physics_sample_count += 1
+            if self.physics_sample_count % 120 == 0:
+                self.physics_samples.flush()
+        except BaseException as exc:
+            # Native callback exceptions are otherwise not guaranteed to reach main().
+            self._physics_logging_failed(exc)
+
+    def _unregister_physics_logger(self):
+        if self.physics_callback_id is not None:
+            try:
+                self.physics_manager.deregister_callback(self.physics_callback_id)
+            except BaseException as exc:
+                self._physics_logging_failed(exc)
+            finally:
+                self.physics_callback_id = None
 
     def boundary_reason(self, row):
         reasons = []
@@ -507,6 +585,7 @@ class CartpoleROS:
             return
         self.closed = True
         try:
+            self._unregister_physics_logger()
             if self.env is not None:
                 if hasattr(self, 'articulation'):
                     self.zero_effort()
@@ -514,6 +593,7 @@ class CartpoleROS:
         finally:
             self.events.close()
             self.samples.close()
+            self.physics_samples.close()
             self.app.close()
 
 
@@ -570,6 +650,8 @@ def main():
             time.sleep(max(0.0, runtime.base.cfg.sim.dt - (time.monotonic() - started)))
     finally:
         runtime.close()
+    if runtime.physics_log_error is not None:
+        raise RuntimeError('Physics logging failed: ' + runtime.physics_log_error)
 
 
 if __name__ == '__main__':
