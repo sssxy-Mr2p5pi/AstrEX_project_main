@@ -19,7 +19,9 @@ from rclpy.signals import SignalHandlerOptions
 from sensor_msgs.msg import JointState
 
 from astrex_ros_bridge.balance_hold_controller import BalanceHoldController
-from astrex_ros_bridge.state_cache import CART_JOINT, POLE_JOINT, CartpoleStateCache
+from astrex_ros_bridge.state_cache import (
+    CART_JOINT, POLE_JOINT, CartpoleStateCache, extract_stamp_ns,
+)
 
 
 FORCE_LIMIT_N = 5.0
@@ -51,23 +53,36 @@ class TrialConfig:
     stable_velocity_mps: float = 0.10
     stable_angle_rad: float = math.radians(2.0)
     stable_angular_velocity_radps: float = 0.20
-    stable_window_sim_sec: float = 1.0
+    stable_window_sim_sec: float = 3.0
     max_state_gap_sim_sec: float = 0.05
 
     def validate(self) -> None:
         scalars = [value for value in asdict(self).values() if isinstance(value, (int, float))]
         if not all(math.isfinite(value) for value in scalars):
             raise ValueError('Trial configuration must be finite')
-        if self.force_limit_n != FORCE_LIMIT_N or self.max_sim_sec > MAX_SIM_SEC:
+        if self.force_limit_n != FORCE_LIMIT_N or not 0 < self.max_sim_sec <= MAX_SIM_SEC:
             raise ValueError('This Step 3D entry fixes the 5 N and 10 sim-second limits')
         if self.control_hz <= 0 or self.state_timeout_local_sec <= 0 or self.max_local_sec <= 0:
             raise ValueError('Control frequency and local timeouts must be positive')
-        if abs(self.x0) > 0.35 or abs(self.theta0) > math.radians(2.1):
-            raise ValueError('Initial state exceeds the planned trial matrix')
-        if abs(self.x0 - self.hold_position) > 0.051:
-            raise ValueError('Initial cart error exceeds the planned trial matrix')
-        if self.max_saturation_sim_sec != MAX_SATURATION_SIM_SEC:
-            raise ValueError('Saturation limit is fixed for this trial')
+        ceilings = {
+            'state_timeout_local_sec': STATE_TIMEOUT_LOCAL_SEC,
+            'abort_angle_rad': ABORT_ANGLE_RAD,
+            'abort_position_error_m': ABORT_POSITION_ERROR_M,
+            'max_saturation_sim_sec': MAX_SATURATION_SIM_SEC,
+            'stable_position_m': 0.05, 'stable_velocity_mps': 0.10,
+            'stable_angle_rad': math.radians(2.0),
+            'stable_angular_velocity_radps': 0.20,
+            'max_state_gap_sim_sec': 0.05,
+        }
+        for name, ceiling in ceilings.items():
+            if not 0 < getattr(self, name) <= ceiling:
+                raise ValueError(f'{name} must be positive and cannot relax the fixed limit')
+        if self.stable_window_sim_sec < 3.0:
+            raise ValueError('C requires at least 3 continuous stable simulation seconds')
+        if abs(self.theta0) > self.abort_angle_rad:
+            raise ValueError('Initial angle exceeds the configured exit boundary')
+        if abs(self.x0 - self.hold_position) > self.abort_position_error_m:
+            raise ValueError('Initial cart error exceeds the configured exit boundary')
 
 
 class BalanceHoldClosedLoopNode(Node):
@@ -87,7 +102,7 @@ class BalanceHoldClosedLoopNode(Node):
         self.events = (self.isaac_run_dir / 'ros_events.jsonl').open(encoding='utf-8')
         self.events.seek(0, os.SEEK_END)
         self.cache = CartpoleStateCache()
-        self.controller = BalanceHoldController(max_force=FORCE_LIMIT_N)
+        self.controller = BalanceHoldController(max_force=config.force_limit_n)
         self.phase = 'WAIT_INITIALIZATION'
         self.stop_reason = None
         self.start_local_ns = time.monotonic_ns()
@@ -100,6 +115,11 @@ class BalanceHoldClosedLoopNode(Node):
         self.max_published_force = 0.0
         self.saturation_start_stamp_ns = None
         self.max_saturation_sim_sec = 0.0
+        self.stable_start_stamp_ns = None
+        self.last_stability_stamp_ns = None
+        self.stable_duration_sim_sec = 0.0
+        self.success_state = None
+        self.success_stamp_ns = None
         self.last_graph_check_ns = time.monotonic_ns()
         self.publisher = None
         self._min_initial_stamp_ns = None
@@ -191,11 +211,23 @@ class BalanceHoldClosedLoopNode(Node):
                 self._record('trial_initialized', isaac_state=state)
 
     def _on_feedback(self, msg: JointState) -> None:
+        if self.stop_reason is not None:
+            return
+        # A queued boundary/reset must win over a potential success frame.
+        self._poll_isaac_events()
+        if self.stop_reason is not None:
+            return
+        stamp, stamp_error = extract_stamp_ns(msg)
+        if (stamp_error is None and self.phase == 'CONTROL'
+                and self.cache.snapshot is not None
+                and stamp < self.cache.snapshot.stamp_ns):
+            self.request_stop('STATE_TIME_REGRESSION')
+            return
         accepted, reason = self.cache.update(msg)
         if not accepted:
             if reason != 'JointState header.stamp did not advance.':
                 self._record('feedback_rejected', reason=reason)
-                if self.phase == 'CONTROL':
+                if self.phase in ('CONTROL', 'WAIT_INITIAL_FEEDBACK'):
                     self.request_stop('INVALID_FEEDBACK')
             return
         snapshot = self.cache.snapshot
@@ -215,16 +247,21 @@ class BalanceHoldClosedLoopNode(Node):
                 return
             self.phase = 'CONTROL'
             self._control_once(snapshot)
+            if self.stop_reason is None:
+                self._update_stability(snapshot)
             return
         if self.phase == 'CONTROL':
             self.feedback_count += 1
             self._record('feedback', **self._fields(snapshot))
+            if self._safe_command(snapshot) is not None:
+                self._update_stability(snapshot)
 
     def _publish(self, force: float, phase: str, snapshot=None, raw=None) -> None:
         if not math.isfinite(force):
             raise ValueError('Refuse a nonfinite command')
-        command = max(-FORCE_LIMIT_N, min(FORCE_LIMIT_N, force))
-        if abs(command) > FORCE_LIMIT_N:
+        limit = self.config.force_limit_n
+        command = max(-limit, min(limit, force))
+        if abs(command) > limit:
             raise AssertionError('Published force exceeds 5 N')
         msg = JointState()
         msg.header.stamp = self.get_clock().now().to_msg()
@@ -249,21 +286,32 @@ class BalanceHoldClosedLoopNode(Node):
                 self._publish(0.0, 'stop')
             except Exception as exc:
                 self._record('zero_publish_error', error=repr(exc))
+                self.stop_reason = 'ZERO_PUBLISH_FAILED'
+                self.success_stamp_ns = None
+                self.success_state = None
+        self.get_logger().info(
+            f'Trial finished: {self.stop_reason}; success_stamp_ns={self.success_stamp_ns}')
 
-    def _control_once(self, snapshot) -> None:
+    def _safe_command(self, snapshot):
+        """Run every fault/timeout check before success or nonzero output."""
         if self.stop_reason is not None:
             return
-        if not self.cache.is_fresh(STATE_TIMEOUT_LOCAL_SEC):
+        config = self.config
+        now_ns = time.monotonic_ns()
+        if (now_ns - self.start_local_ns) / 1e9 > config.max_local_sec:
+            self.request_stop('LOCAL_TIMEOUT')
+            return
+        if not self.cache.is_fresh(config.state_timeout_local_sec, now_ns):
             self.request_stop('STALE_FEEDBACK')
             return
-        if (abs(snapshot.theta) > ABORT_ANGLE_RAD or
-                abs(snapshot.x - self.config.hold_position) > ABORT_POSITION_ERROR_M):
+        if (abs(snapshot.theta) > config.abort_angle_rad or
+                abs(snapshot.x - config.hold_position) > config.abort_position_error_m):
             self.request_stop('TRIAL_BOUNDARY')
             return
         elapsed_sim = (snapshot.stamp_ns - self.initial_stamp_ns) / 1e9
         # Leave one control period of margin before the 10-second boundary.
-        if elapsed_sim >= MAX_SIM_SEC - 1.0 / self.config.control_hz:
-            self.request_stop('SIM_WINDOW_END')
+        if elapsed_sim >= config.max_sim_sec - 1.0 / config.control_hz:
+            self.request_stop('SIM_TIMEOUT')
             return
         try:
             raw = self.controller.compute_raw_force_from_state(
@@ -272,22 +320,75 @@ class BalanceHoldClosedLoopNode(Node):
                 raise ValueError('Nonfinite LQR output')
             command = self.controller.compute_force_from_state(
                 snapshot.values, self.config.hold_position)
-            if abs(command) > FORCE_LIMIT_N:
+            if abs(command) > config.force_limit_n:
                 raise ValueError('Controller returned force above 5 N')
         except (ValueError, OverflowError, FloatingPointError) as exc:
             self._record('control_error', detail=repr(exc))
             self.request_stop('NONFINITE_OR_INVALID_FORCE')
             return
-        if abs(raw) > FORCE_LIMIT_N:
+        if abs(raw) > config.force_limit_n:
             if self.saturation_start_stamp_ns is None:
                 self.saturation_start_stamp_ns = snapshot.stamp_ns
             saturation_sec = (snapshot.stamp_ns - self.saturation_start_stamp_ns) / 1e9
             self.max_saturation_sim_sec = max(self.max_saturation_sim_sec, saturation_sec)
-            if saturation_sec > MAX_SATURATION_SIM_SEC:
+            if saturation_sec > config.max_saturation_sim_sec:
                 self.request_stop('SATURATION_TIMEOUT')
                 return
         else:
             self.saturation_start_stamp_ns = None
+        if (now_ns - self.last_graph_check_ns) / 1e9 >= 1.0:
+            if len(self.get_publishers_info_by_topic('/joint_command')) != 1:
+                self.request_stop('COMPETING_COMMAND_PUBLISHER')
+                return
+            self.last_graph_check_ns = now_ns
+        return raw, command
+
+    def _stable(self, snapshot) -> bool:
+        config = self.config
+        if not (abs(snapshot.x - config.hold_position) <= config.stable_position_m
+                and abs(snapshot.x_dot) <= config.stable_velocity_mps
+                and abs(snapshot.theta) <= config.stable_angle_rad
+                and abs(snapshot.theta_dot) <= config.stable_angular_velocity_radps):
+            return False
+        # Keep B's recovery requirements; an initially acceptable tilt is not recovery.
+        if abs(config.theta0) > 1e-9 and abs(snapshot.theta) >= 0.5 * abs(config.theta0):
+            return False
+        if (abs(config.x0 - config.hold_position) >= 0.05 - 1e-9
+                and abs(snapshot.x - config.hold_position) >= 0.025):
+            return False
+        return True
+
+    def _update_stability(self, snapshot) -> None:
+        """Count simulation time only when a new accepted state arrives."""
+        stamp = snapshot.stamp_ns
+        previous = self.last_stability_stamp_ns
+        if previous is not None and stamp <= previous:
+            return
+        if (previous is not None
+                and (stamp - previous) / 1e9 > self.config.max_state_gap_sim_sec):
+            self.stable_start_stamp_ns = None
+        self.last_stability_stamp_ns = stamp
+        if not self._stable(snapshot):
+            self.stable_start_stamp_ns = None
+        elif self.stable_start_stamp_ns is None:
+            self.stable_start_stamp_ns = stamp
+        self.stable_duration_sim_sec = (
+            (stamp - self.stable_start_stamp_ns) / 1e9
+            if self.stable_start_stamp_ns is not None else 0.0)
+        if self.stable_duration_sim_sec >= self.config.stable_window_sim_sec:
+            # Inspect the live command graph again at the success boundary.
+            if len(self.get_publishers_info_by_topic('/joint_command')) != 1:
+                self.request_stop('COMPETING_COMMAND_PUBLISHER')
+                return
+            self.success_stamp_ns = stamp
+            self.success_state = snapshot
+            self.request_stop('SUCCESS')
+
+    def _control_once(self, snapshot) -> None:
+        pair = self._safe_command(snapshot)
+        if pair is None:
+            return
+        raw, command = pair
         self._publish(command, 'control', snapshot, raw)
         now_ns = time.monotonic_ns()
         if self.first_control_ns is None:
@@ -307,22 +408,13 @@ class BalanceHoldClosedLoopNode(Node):
         if self.stop_reason is not None:
             return
         now_ns = time.monotonic_ns()
-        if (now_ns - self.start_local_ns) / 1e9 > MAX_LOCAL_SEC:
+        if (now_ns - self.start_local_ns) / 1e9 > self.config.max_local_sec:
             self.request_stop('LOCAL_TIMEOUT')
             return
         if self.phase in ('WAIT_INITIALIZATION', 'WAIT_INITIAL_FEEDBACK'):
             return
         if self.phase != 'CONTROL':
             return
-        if not self.cache.is_fresh(STATE_TIMEOUT_LOCAL_SEC, now_ns):
-            self.request_stop('STALE_FEEDBACK')
-            return
-        if (now_ns - self.last_graph_check_ns) / 1e9 >= 1.0:
-            publishers = self.get_publishers_info_by_topic('/joint_command')
-            if len(publishers) != 1:
-                self.request_stop('COMPETING_COMMAND_PUBLISHER')
-                return
-            self.last_graph_check_ns = now_ns
         self._control_once(self.cache.snapshot)
 
     def finish(self) -> dict:
@@ -334,9 +426,12 @@ class BalanceHoldClosedLoopNode(Node):
             for _ in range(ZERO_COUNT - 1):
                 try:
                     self._publish(0.0, 'final_zero')
-                    time.sleep(1.0 / CONTROL_HZ)
+                    time.sleep(1.0 / self.config.control_hz)
                 except Exception as exc:
                     self._record('zero_publish_error', error=repr(exc))
+                    self.stop_reason = 'ZERO_PUBLISH_FAILED'
+                    self.success_stamp_ns = None
+                    self.success_state = None
         snapshot = self.cache.snapshot
         final = self._fields(snapshot) if snapshot else None
         duration_ns = (self.last_control_ns - self.first_control_ns
@@ -344,6 +439,14 @@ class BalanceHoldClosedLoopNode(Node):
         result = {'reason': self.stop_reason, 'initial_state': (
                   self._fields(self.initial_state) if self.initial_state else None),
                   'final_state': final,
+                  'success_stamp_ns': self.success_stamp_ns,
+                  'success_state': (self._fields(self.success_state)
+                                    if self.success_state is not None else None),
+                  'stable_window': ({
+                      'start_stamp_ns': self.stable_start_stamp_ns,
+                      'end_stamp_ns': self.success_stamp_ns,
+                      'duration_sim_sec': self.stable_duration_sim_sec,
+                  } if self.success_state is not None else None),
                   'max_published_force_n': self.max_published_force,
                   'max_continuous_saturation_sim_sec': self.max_saturation_sim_sec,
                   'control_count': self.control_count,
@@ -397,7 +500,7 @@ def main():
             result = node.finish()
             node.destroy_node()
         rclpy.try_shutdown()
-    return 0 if result['reason'] == 'SIM_WINDOW_END' else 1
+    return 0 if result['reason'] == 'SUCCESS' else 1
 
 
 if __name__ == '__main__':
