@@ -17,6 +17,7 @@ Contracts covered (consolidated from the earlier per-case launcher tests):
 
 import fcntl
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -118,7 +119,51 @@ class LauncherContracts(unittest.TestCase):
         value = self.print_config('start_isaac_ros.sh')
         self.assertEqual(value['profile'], 'ros')
         self.assertFalse(value['arguments']['headless'])
+        self.assertEqual(value['arguments']['trial_task'], 'hold')
+        self.assertIsNone(value['arguments']['trial_target'])
+        self.assertEqual(value['arguments']['trial_reference_speed'], 0.05)
         self.assertEqual(self.run_dirs('ros'), before)
+
+    def test_hold_trial_retains_existing_options(self):
+        value = self.print_config('start_isaac_ros.sh',
+                                  ['--trial-x0', '0.3', '--trial-theta0', '0.03',
+                                   '--trial-hold-position', '0.3'])
+        self.assertEqual(value['arguments']['trial_task'], 'hold')
+        self.assertEqual(value['arguments']['trial_hold_position'], 0.3)
+        self.assertIsNone(value['arguments']['trial_target'])
+
+    def test_moving_trial_keeps_initial_hold_separate_from_final_target(self):
+        before = self.run_dirs('ros')
+        for task, target, speed in [('move', -0.3, 0.05), ('move_then_hold', 0.5, 0.03)]:
+            with self.subTest(task=task):
+                value = self.print_config('start_isaac_ros.sh',
+                                          ['--trial-x0', '0', '--trial-theta0', '0.034906585',
+                                           '--trial-hold-position', '0', '--trial-task', task,
+                                           '--trial-target', str(target),
+                                           '--trial-reference-speed', str(speed)])
+                self.assertEqual(value['arguments']['trial_task'], task)
+                self.assertEqual(value['arguments']['trial_target'], target)
+                self.assertEqual(value['arguments']['trial_hold_position'], 0)
+                self.assertEqual(value['arguments']['trial_reference_speed'], speed)
+                self.assertFalse(value['arguments']['headless'])
+        self.assertEqual(self.run_dirs('ros'), before)
+
+    def test_invalid_moving_trial_options_are_rejected(self):
+        initial = ['--trial-x0', '0', '--trial-theta0', '0', '--trial-hold-position', '0']
+        cases = [(['--trial-task', 'move', '--trial-target', '0.5']),
+                 (initial + ['--trial-task', 'move']),
+                 (initial + ['--trial-task', 'move', '--trial-target', 'nan']),
+                 (initial + ['--trial-task', 'move', '--trial-target', 'inf']),
+                 (initial + ['--trial-target', '0.5']),
+                 (['--trial-x0', '0', '--trial-theta0', '0', '--trial-hold-position', '0.5',
+                   '--trial-task', 'move', '--trial-target', '0.5'])]
+        cases += [initial + ['--trial-task', 'move', '--trial-target', '0.5',
+                             '--trial-reference-speed', value]
+                  for value in ('nan', 'inf', '0', '-0.03', '0.051')]
+        for args in cases:
+            with self.subTest(args=args):
+                result = self.run_entry('start_isaac_ros.sh', ['--print-config', *args])
+                self.assertNotEqual(result.returncode, 0, args)
 
     # ---------------------------------------------- 4. invalid and legacy rejection
     def test_invalid_overrides_are_rejected(self):
@@ -161,6 +206,79 @@ class LauncherContracts(unittest.TestCase):
         finally:
             fcntl.flock(handle, fcntl.LOCK_UN)
             os.close(handle)
+
+
+class TrialHandshakeContracts(unittest.TestCase):
+    """Validate request identity without creating a SimulationApp or physics scene."""
+
+    @classmethod
+    def setUpClass(cls):
+        spec = importlib.util.spec_from_file_location(
+            'run_ros_cartpole_contract', ROOT / 'sim/scripts/run_ros_cartpole.py')
+        cls.module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.module)
+
+    def check_handshake(self, request, marker, should_accept):
+        with tempfile.TemporaryDirectory(prefix='astrex trial handshake ') as folder:
+            runtime = self.module.CartpoleROS.__new__(self.module.CartpoleROS)
+            runtime.run = Path(folder)
+            runtime.trial = request
+            runtime.trial_initialized = False
+            runtime.trial_ready_path = runtime.run / 'trial_ready.json'
+            payload = dict(marker, trial_id=runtime.run.name, controller_pid=os.getpid())
+            runtime.trial_ready_path.write_text(json.dumps(payload))
+
+            class ReachedInitialization(Exception):
+                pass
+
+            def stop_before_physics():
+                raise ReachedInitialization()
+
+            runtime.hold_trial_rest = stop_before_physics
+            expected = ReachedInitialization if should_accept else RuntimeError
+            with self.assertRaises(expected):
+                runtime.maybe_initialize_trial()
+
+    def test_hold_preserves_exact_legacy_schema(self):
+        request = {'x0': 0, 'theta0': 0.02, 'hold_position': 0}
+        self.check_handshake(request, request, True)
+        self.check_handshake(request, dict(request, task='hold'), False)
+
+    def test_move_configuration_must_match_launch_request(self):
+        for task in ('move', 'move_then_hold'):
+            request = {'x0': 0, 'theta0': 0.02, 'hold_position': 0,
+                       'task': task, 'target': 0.5, 'reference_speed_mps': 0.05}
+            self.check_handshake(request, request, True)
+            for update in ({'target': 0.3}, {'reference_speed_mps': 0.03}, {'task': 'hold'},
+                           {'target': True}, {'reference_speed_mps': float('nan')}):
+                with self.subTest(task=task, update=update):
+                    self.check_handshake(request, dict(request, **update), False)
+            legacy_marker = {key: request[key] for key in ('x0', 'theta0', 'hold_position')}
+            self.check_handshake(request, legacy_marker, False)
+
+    def test_final_target_uses_real_scene_and_joint_limits(self):
+        request = {'x0': 0.0, 'theta0': 0.0, 'hold_position': 0.0,
+                   'task': 'move_then_hold', 'target': 0.5, 'reference_speed_mps': 0.05}
+        self.module.validate_trial_limits(request, [-4.0, 4.0], 3.0)
+        for limits, scene_limit, update in [([-4.0, 4.0], 3.0, {'target': 3.01}),
+                                          ([-0.4, 0.4], 3.0, {}),
+                                          ([-4.0, 4.0], 3.0, {'x0': -4.01}),
+                                          ([-4.0, 4.0], 3.0, {'hold_position': float('nan')}),
+                                          ([-4.0, 4.0], 3.0, {'target': True}),
+                                          ([-4.0, 4.0], 0.0, {}),
+                                          ([float('nan'), 4.0], 3.0, {})]:
+            with self.subTest(limits=limits, scene_limit=scene_limit, update=update):
+                with self.assertRaises(RuntimeError):
+                    self.module.validate_trial_limits(dict(request, **update), limits, scene_limit)
+
+    def test_project_camera_frames_the_requested_travel(self):
+        self.assertEqual(self.module.trial_viewer(None, (0.0, 0.0, 2.0)),
+                         {'eye': (4.0, 0.0, 3.3), 'lookat': (0.0, 0.0, 2.5)})
+        request = {'x0': 0.0, 'hold_position': 0.0, 'target': 0.5}
+        view = self.module.trial_viewer(request, (0.0, 0.0, 2.0))
+        self.assertEqual(view['eye'], (4.0, 0.25, 3.3))
+        self.assertEqual(view['lookat'], (0.0, 0.25, 2.5))
+        # Viewing metadata is not evidence that a person actually saw the GUI.
 
 
 if __name__ == '__main__':

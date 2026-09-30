@@ -127,6 +127,11 @@ def arguments(argv):
         parser.add_argument('--trial-x0', type=float, help='Cart position at trial start [m]')
         parser.add_argument('--trial-theta0', type=float, help='Pole angle at trial start [rad]')
         parser.add_argument('--trial-hold-position', type=float, help='Fixed cart target [m]')
+        parser.add_argument('--trial-task', choices=('hold', 'move', 'move_then_hold'), default='hold',
+                            help='Trial task; the default preserves the fixed-target hold handshake')
+        parser.add_argument('--trial-target', type=float, help='Final cart target for a moving trial [m]')
+        parser.add_argument('--trial-reference-speed', type=float, default=0.05,
+                            help='Maximum moving-reference speed [m/s], at most 0.05')
     args = parser.parse_args(argv[1:])
     if profile == 'ros':
         trial_values = (args.trial_x0, args.trial_theta0, args.trial_hold_position)
@@ -139,6 +144,18 @@ def arguments(argv):
                 parser.error('Trial initial pole angle must be within 10 degrees')
             if abs(args.trial_x0 - args.trial_hold_position) > 0.25:
                 parser.error('Trial initial cart offset must be within 0.25 m of hold position')
+        if not math.isfinite(args.trial_reference_speed) or not 0 < args.trial_reference_speed <= 0.05:
+            parser.error('Trial reference speed must be finite, positive and at most 0.05 m/s')
+        if args.trial_task == 'hold':
+            if args.trial_target is not None:
+                parser.error('A final trial target is only valid for a moving task')
+        else:
+            if any(value is None for value in trial_values):
+                parser.error('Moving trials require all three trial initial-state options')
+            if args.trial_target is None or not math.isfinite(args.trial_target):
+                parser.error('Moving trials require a finite final trial target')
+            if args.trial_hold_position != args.trial_x0:
+                parser.error('Moving trial hold position must equal x0; pass the final target separately')
     return profile, args, []
 
 def main():
@@ -191,6 +208,9 @@ def main():
             if args.trial_x0 is not None:
                 tail += ['--trial-x0', repr(args.trial_x0), '--trial-theta0', repr(args.trial_theta0),
                          '--trial-hold-position', repr(args.trial_hold_position)]
+                if args.trial_task != 'hold':
+                    tail += ['--trial-task', args.trial_task, '--trial-target', repr(args.trial_target),
+                             '--trial-reference-speed', repr(args.trial_reference_speed)]
         else:
             script = ROOT / 'sim/scripts/rl_official.py'
             tail = ['--task', args.task, '--num_envs', str(args.num_envs), '--seed', str(args.seed),
@@ -202,8 +222,17 @@ def main():
             tail += ['--kit_args', f'--/app/userConfigPath={run / "user.config.json"} '
                      f'--/log/file={run / "kit.log"} --/app/settings/persistent=false --/app/settings/loadUserConfig=false']
         argv = [sys.executable, '-B', str(script), *tail]
-        (run / 'manifest.json').write_text(json.dumps({'profile': profile, 'argv': argv, 'cwd': str(run),
-             'config_sha256': hashlib.sha256((ROOT / 'config/isaac_baseline.env').read_bytes()).hexdigest()}, indent=2))
+        manifest = {'profile': profile, 'argv': argv, 'cwd': str(run),
+                    'config_sha256': hashlib.sha256((ROOT / 'config/isaac_baseline.env').read_bytes()).hexdigest()}
+        if profile == 'ros':
+            manifest['trial'] = None
+            if args.trial_x0 is not None:
+                manifest['trial'] = {'x0': args.trial_x0, 'theta0': args.trial_theta0,
+                                     'hold_position': args.trial_hold_position}
+                if args.trial_task != 'hold':
+                    manifest['trial'].update(task=args.trial_task, target=args.trial_target,
+                                             reference_speed_mps=args.trial_reference_speed)
+        (run / 'manifest.json').write_text(json.dumps(manifest, indent=2))
         print(f'PROFILE={profile}\nOUTPUT={run}\nLOG={run / "console.log"}\nCHECKPOINT_ROOT={run / "logs/rsl_rl"}', flush=True)
         child = subprocess.Popen(argv, cwd=run, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                  text=True, bufsize=1, start_new_session=True)

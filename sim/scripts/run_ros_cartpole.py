@@ -27,6 +27,34 @@ def json_safe(value):
     return value
 
 
+def validate_trial_limits(trial, cart_limits, scene_max_cart_pos):
+    """Check initial and requested cart positions against the actual loaded scene."""
+    if trial is None:
+        return
+    if (len(cart_limits) != 2 or not all(math.isfinite(value) for value in cart_limits)
+            or cart_limits[0] > cart_limits[1] or not math.isfinite(scene_max_cart_pos)
+            or scene_max_cart_pos <= 0):
+        raise RuntimeError('Cart joint/scene limits are unavailable or invalid')
+    for key in ('x0', 'hold_position', *(['target'] if 'target' in trial else [])):
+        value = trial[key]
+        if (isinstance(value, bool) or not isinstance(value, (int, float))
+                or not math.isfinite(value) or not cart_limits[0] <= value <= cart_limits[1]
+                or abs(value) > scene_max_cart_pos):
+            raise RuntimeError(
+                f'Trial {key}={value} m is outside cart limits {cart_limits} '
+                f'or scene boundary +/-{scene_max_cart_pos} m')
+
+
+def trial_viewer(trial, root_position):
+    """Frame the cart/pole and requested +Y travel without changing the robot asset."""
+    start = trial['x0'] if trial is not None else 0.0
+    target = trial.get('target', trial['hold_position']) if trial is not None else start
+    middle = (start + target) / 2
+    x, y, z = root_position
+    return {'eye': (x + 4.0, y + middle, z + 1.3),
+            'lookat': (x, y + middle, z + 0.5)}
+
+
 class CartpoleROS:
     """Own the demo scene, graph and boundary reset lifecycle."""
 
@@ -97,6 +125,9 @@ class CartpoleROS:
         cfg.decimation = 2
         cfg.initial_pole_angle_range = [0.0, 0.0]
         cfg.scene.clone_in_fabric = False
+        self.viewer = trial_viewer(self.trial, cfg.robot_cfg.init_state.pos)
+        cfg.viewer.eye = self.viewer['eye']
+        cfg.viewer.lookat = self.viewer['lookat']
         self.env = gym.make('Isaac-Cartpole-Direct-v0', cfg=cfg)
         self.base = self.env.unwrapped
         print('ROS_STARTUP_STAGE env_created', flush=True)
@@ -111,13 +142,7 @@ class CartpoleROS:
         self.cart = self.names.index('slider_to_cart')
         self.pole = self.names.index('cart_to_pole')
         cart_limits = self.base.cartpole.data.joint_pos_limits[0, self.cart].tolist()
-        if self.trial is not None:
-            for key in ('x0', 'hold_position'):
-                value = self.trial[key]
-                if not cart_limits[0] <= value <= cart_limits[1] or abs(value) > cfg.max_cart_pos:
-                    raise RuntimeError(
-                        f'Trial {key}={value} m is outside cart limits {cart_limits} '
-                        f'or scene boundary +/-{cfg.max_cart_pos} m')
+        validate_trial_limits(self.trial, cart_limits, cfg.max_cart_pos)
         self.articulation = SingleArticulation(self.root, reset_xform_properties=False)
         self.articulation.initialize()
         print('ROS_STARTUP_STAGE articulation_initialized', flush=True)
@@ -153,9 +178,13 @@ class CartpoleROS:
                    graph_path=self.graph_path, graph_creations=self.graph_creations,
                    astrex_graph_count=len(ours), command_gate=self.command_gate,
                    trial=self.trial, cart_joint_limits=cart_limits,
-                   scene_max_cart_pos=cfg.max_cart_pos,
+                   scene_max_cart_pos=cfg.max_cart_pos, viewer=self.viewer,
                    publish=['/clock', '/joint_states'], subscribe=['/joint_command'])
-        (self.run / 'ready.json').write_text(json.dumps({'graph': self.path, 'pid': os.getpid()}))
+        (self.run / 'ready.json').write_text(json.dumps(
+            {'graph': self.path, 'pid': os.getpid(), 'trial': self.trial,
+             'cart_joint_limits': cart_limits, 'scene_max_cart_pos': cfg.max_cart_pos,
+             'device': str(self.base.sim.device), 'gui': not self.headless,
+             'viewer': self.viewer}))
         print('Waiting for ROS commands', flush=True)
 
     def create_graph(self):
@@ -224,11 +253,18 @@ class CartpoleROS:
             return
         ready = json.loads(self.trial_ready_path.read_text())
         required = {'x0', 'theta0', 'hold_position', 'controller_pid', 'trial_id'}
+        if self.trial.get('task', 'hold') != 'hold':
+            required.update(('task', 'target', 'reference_speed_mps'))
         if not isinstance(ready, dict) or set(ready) != required:
             raise RuntimeError(f'Invalid trial_ready.json schema; expected {sorted(required)}')
         if ready['trial_id'] != self.run.name:
             raise RuntimeError('trial_ready.json trial_id does not match this run')
-        for key in ('x0', 'theta0', 'hold_position'):
+        numeric_keys = ('x0', 'theta0', 'hold_position')
+        if self.trial.get('task', 'hold') != 'hold':
+            if ready['task'] != self.trial['task']:
+                raise RuntimeError('trial_ready.json task does not match launched trial')
+            numeric_keys += ('target', 'reference_speed_mps')
+        for key in numeric_keys:
             value = ready[key]
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
                 raise RuntimeError(f'Invalid trial_ready.json {key}')
@@ -487,6 +523,9 @@ def main():
     parser.add_argument('--trial-x0', type=float)
     parser.add_argument('--trial-theta0', type=float)
     parser.add_argument('--trial-hold-position', type=float)
+    parser.add_argument('--trial-task', choices=('hold', 'move', 'move_then_hold'), default='hold')
+    parser.add_argument('--trial-target', type=float)
+    parser.add_argument('--trial-reference-speed', type=float, default=0.05)
     args = parser.parse_args()
     trial_values = (args.trial_x0, args.trial_theta0, args.trial_hold_position)
     trial = None
@@ -499,6 +538,20 @@ def main():
             parser.error('Trial initial cart offset must be within 0.25 m of hold position')
         trial = {'x0': args.trial_x0, 'theta0': args.trial_theta0,
                  'hold_position': args.trial_hold_position}
+    if not math.isfinite(args.trial_reference_speed) or not 0 < args.trial_reference_speed <= 0.05:
+        parser.error('Trial reference speed must be finite, positive and at most 0.05 m/s')
+    if args.trial_task == 'hold':
+        if args.trial_target is not None:
+            parser.error('A final trial target is only valid for a moving task')
+    else:
+        if trial is None:
+            parser.error('Moving trials require all three trial initial-state options')
+        if args.trial_target is None or not math.isfinite(args.trial_target):
+            parser.error('Moving trials require a finite final trial target')
+        if args.trial_hold_position != args.trial_x0:
+            parser.error('Moving trial hold position must equal x0; pass the final target separately')
+        trial.update(task=args.trial_task, target=args.trial_target,
+                     reference_speed_mps=args.trial_reference_speed)
     runtime = CartpoleROS(headless=args.headless, trial=trial)
     def stop(signum, frame):
         runtime.keep_running = False

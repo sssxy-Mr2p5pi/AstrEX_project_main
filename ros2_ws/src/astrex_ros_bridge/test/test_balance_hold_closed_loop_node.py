@@ -27,7 +27,7 @@ def feedback(stamp_ns, x=0.0, theta=0.0, x_dot=0.0, theta_dot=0.0):
 
 
 @pytest.fixture
-def trial(tmp_path, monkeypatch):
+def trial(tmp_path, monkeypatch, request):
     rclpy.init()
     isaac = tmp_path / 'isaac'
     isaac.mkdir()
@@ -40,7 +40,8 @@ def trial(tmp_path, monkeypatch):
         BalanceHoldClosedLoopNode, '_verify_isaac_identity',
         lambda self: setattr(self, 'isaac_graph', '/World/AstrEXROSGraph_test'))
     node = BalanceHoldClosedLoopNode(
-        TrialConfig(0.0, 0.0, 0.0, str(isaac)), tmp_path / 'trial')
+        TrialConfig(0.0, 0.0, 0.0, str(isaac), **getattr(request, 'param', {})),
+        tmp_path / 'trial')
     yield node, listener, received, isaac
     if not node.trace.closed:
         node.request_stop('TEST_END')
@@ -228,7 +229,7 @@ def test_runtime_uses_configured_exit_limits(trial, config_change, state, reason
     if reason == 'STALE_FEEDBACK':
         received_ns -= 20_000_000
     if reason == 'LOCAL_TIMEOUT':
-        node.start_local_ns = time.monotonic_ns() - 20_000_000
+        node.active_start_local_ns = time.monotonic_ns() - 20_000_000
     snapshot = StateSnapshot(state.get('x', 0.0), 0.0, state.get('theta', 0.0), 0.0,
                              stamp, received_ns)
     node.cache.snapshot = snapshot
@@ -285,3 +286,162 @@ def test_zero_publish_failure_cannot_return_success(trial, monkeypatch):
     assert node.stop_reason == 'ZERO_PUBLISH_FAILED'
     assert node.success_stamp_ns is None
     assert node.finish()['reason'] == 'ZERO_PUBLISH_FAILED'
+
+
+@pytest.mark.parametrize('trial', [
+    {'task': 'move', 'target': 0.3}, {'task': 'move', 'target': -0.3},
+], indirect=True)
+def test_move_reference_uses_sim_time_and_cannot_finish_before_endpoint(trial):
+    node, _, _, isaac = trial
+    initialize_trial(node, isaac)
+    assert node.reference.duration_sec == pytest.approx(11.25)
+    assert node.reference.position(node.initial_stamp_ns) == node.initial_state.x
+    assert node._active_local_limit() == max(60.0, 3 * (11.25 + 8.0))
+    # Even an already-nearby final target cannot bypass the reference duration.
+    node.config = replace(node.config, stable_position_m=0.05)
+    sign = 1 if node.config.target > 0 else -1
+    for stamp in range(1_025_000_000, node.reference.end_stamp_ns + 1, 25_000_000):
+        position = node.reference.position(stamp)
+        node._on_feedback(feedback(stamp, x=position))
+    assert node.stop_reason is None
+    assert node.stable_duration_sim_sec == 0.0
+    for stamp in range(node.reference.end_stamp_ns + 25_000_000,
+                       node.reference.end_stamp_ns + 1_000_000_001, 25_000_000):
+        node._on_feedback(feedback(stamp, x=sign * 0.3))
+    assert node.stop_reason == 'MOVE_SUCCESS'
+    assert node.move_stable_window['duration_sim_sec'] == 1.0
+    assert node.success_stamp_ns == node.reference.end_stamp_ns + 1_000_000_000
+
+
+@pytest.mark.parametrize('trial', [{'task': 'move', 'target': 0.5}], indirect=True)
+def test_move_boundaries_follow_reference_not_final_target(trial):
+    node, _, _, isaac = trial
+    initialize_trial(node, isaac)
+    # The initial final-target error is 0.5 m and is valid for a moving task.
+    assert node.stop_reason is None
+    assert node.path_corridor == (-0.25, 0.75)
+    assert node._stable(node.cache.snapshot) is False
+    node._on_feedback(feedback(1_025_000_000, x=-0.251))
+    assert node.stop_reason == 'TRIAL_BOUNDARY'
+
+
+@pytest.mark.parametrize('trial', [{'task': 'move', 'target': 0.01}], indirect=True)
+def test_already_inside_target_tolerance_still_waits_for_reference(trial):
+    node, _, _, isaac = trial
+    initialize_trial(node, isaac)
+    feed_stable(node, 1_025_000_000, 2_975_000_000)
+    assert node.stop_reason is None
+    assert node.stable_start_stamp_ns is None
+    node._on_feedback(feedback(3_000_000_000))
+    assert node.stable_start_stamp_ns == node.reference.end_stamp_ns
+    assert node.stop_reason is None
+
+
+@pytest.mark.parametrize('trial', [{'task': 'move_then_hold', 'target': 0.0}], indirect=True)
+def test_sequential_zero_new_s1_and_separate_hold_window(trial):
+    node, _, _, isaac = trial
+    initialize_trial(node, isaac)
+    feed_stable(node, 1_025_000_000, 2_000_000_000)
+    assert node.stop_reason is None and node.phase == 'WAIT_S1'
+    assert node.move_success_stamp_ns == 2_000_000_000
+    controls_before = node.control_count
+    node._tick()
+    node._on_feedback(feedback(2_000_000_000))
+    assert node.control_count == controls_before
+    assert node.s1_state is None
+    node._on_feedback(feedback(2_025_000_000))
+    assert node.phase == 'CONTROL' and node.task_phase == 'HOLD'
+    assert node.s1_state.stamp_ns > node.move_success_stamp_ns
+    assert node.s1_state.received_monotonic_ns > node.transition_zero_local_monotonic_ns
+    assert node.stable_duration_sim_sec == 0.0
+    feed_stable(node, 2_050_000_000, 5_000_000_000)
+    assert node.stop_reason is None
+    node._on_feedback(feedback(5_025_000_000))
+    assert node.stop_reason == 'DEMO_SUCCESS'
+    result = node.finish()
+    assert result['move_stable_window']['duration_sim_sec'] == 1.0
+    assert result['hold_stable_window']['duration_sim_sec'] == 3.0
+    assert result['hold_start_stamp_ns'] == result['s1_state']['stamp_ns']
+    rows = [json.loads(line) for line in (node.trial_dir / 'trace.jsonl').read_text().splitlines()]
+    transition = next(i for i, row in enumerate(rows) if row.get('phase') == 'transition_zero')
+    hold_start = next(i for i, row in enumerate(rows) if row['event'] == 'hold_started')
+    assert all(row['event'] != 'command' or row['f_cmd'] == 0.0
+               for row in rows[transition:hold_start])
+
+
+@pytest.mark.parametrize('trial', [{'task': 'move_then_hold', 'target': 0.0}], indirect=True)
+def test_s1_timeout_cannot_start_hold(trial):
+    node, _, _, isaac = trial
+    initialize_trial(node, isaac)
+    feed_stable(node, 1_025_000_000, 2_000_000_000)
+    node.transition_zero_local_monotonic_ns = time.monotonic_ns() - 501_000_000
+    node._tick()
+    assert node.stop_reason == 'S1_TIMEOUT'
+    assert node.s1_state is None
+
+
+@pytest.mark.parametrize('trial', [{'task': 'move_then_hold', 'target': 0.0}], indirect=True)
+def test_pending_fault_wins_over_move_success(trial):
+    node, _, _, isaac = trial
+    initialize_trial(node, isaac)
+    feed_stable(node, 1_025_000_000, 1_975_000_000)
+    with (isaac / 'ros_events.jsonl').open('a') as stream:
+        stream.write(json.dumps({'event': 'boundary'}) + '\n')
+    node._on_feedback(feedback(2_000_000_000))
+    assert node.stop_reason == 'ISAAC_BOUNDARY'
+    assert node.move_success_stamp_ns is None and node.s1_state is None
+
+
+@pytest.mark.parametrize('trial', [
+    {'task': 'move', 'target': 0.3, 'dry_run': True},
+    {'task': 'move', 'target': -0.3, 'dry_run': True},
+    {'task': 'move', 'target': 0.5, 'dry_run': True},
+], indirect=True)
+def test_strict_dry_run_never_creates_publisher_or_releases_marker(trial):
+    node, listener, received, isaac = trial
+    assert node.publisher is None
+    assert not (isaac / 'trial_ready.json').exists()
+    node._on_feedback(feedback(1_000_000_000))
+    assert node.phase == 'CONTROL'
+    for stamp in range(1_025_000_000,
+                       node.reference.end_stamp_ns + 1_000_000_001, 25_000_000):
+        node._on_feedback(feedback(stamp))
+        node._tick()
+    assert node.stop_reason == 'DRY_RUN_PASS'
+    assert node.success_stamp_ns is None
+    result = node.finish()
+    rclpy.spin_once(listener, timeout_sec=0.01)
+    assert received == []
+    assert result['publisher_created'] is False
+    assert result['max_published_force_n'] == 0.0
+    assert result['success_state'] is None
+    rows = [json.loads(line) for line in (node.trial_dir / 'trace.jsonl').read_text().splitlines()]
+    assert not any(row['event'] == 'command' for row in rows)
+    calculations = [row for row in rows if row['event'] == 'calculation']
+    assert calculations and all(abs(row['f_cmd']) <= 5.0 for row in calculations)
+    assert all(row['pole_torque'] == 0.0 for row in calculations)
+    for row in calculations:
+        state_error = [row['x'] - row['x_ref'], row['x_dot'], row['theta'], row['theta_dot']]
+        independent_raw = -sum(k * e for k, e in zip(node.controller.gain[0], state_error))
+        assert row['f_raw'] == pytest.approx(independent_raw)
+        assert row['f_cmd'] == pytest.approx(max(-5.0, min(5.0, independent_raw)))
+
+
+@pytest.mark.parametrize('trial', [{'task': 'move', 'target': 0.3, 'dry_run': True}], indirect=True)
+def test_dry_run_still_faults_on_time_regression_and_invalid_state(trial):
+    node, _, _, _ = trial
+    node._on_feedback(feedback(1_000_000_000))
+    node._on_feedback(feedback(1_025_000_000))
+    node._on_feedback(feedback(1_010_000_000))
+    assert node.stop_reason == 'STATE_TIME_REGRESSION'
+    assert node.publisher is None
+
+
+def test_move_requires_finite_target_and_keeps_all_force_protection():
+    for changes in ({'task': 'move'}, {'task': 'move', 'target': math.inf},
+                    {'task': 'move', 'target': 0.5, 'reference_speed_mps': 0.051},
+                    {'task': 'move', 'target': 0.5, 'force_limit_n': 5.01}):
+        with pytest.raises(ValueError):
+            replace(TrialConfig(0, 0, 0, '/tmp/example'), **changes).validate()
+    config = TrialConfig(0, 0, 0, '/tmp/example', task='move', target=0.5)
+    config.validate()

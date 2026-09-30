@@ -27,6 +27,7 @@ setup(
             'state_cache = astrex_ros_bridge.state_cache_node:main',
             'balance_hold_dry_run = astrex_ros_bridge.balance_hold_dry_run_node:main',
             'balance_hold_closed_loop = astrex_ros_bridge.balance_hold_closed_loop_node:main',
+            'cartpole_trial = astrex_ros_bridge.balance_hold_closed_loop_node:main',
         ],
     },
 )
