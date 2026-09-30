@@ -30,10 +30,14 @@ def json_safe(value):
 class CartpoleROS:
     """Own the demo scene, graph and boundary reset lifecycle."""
 
-    def __init__(self, headless=False):
+    def __init__(self, headless=False, trial=None):
         from isaaclab.app import AppLauncher
         self.run = Path(os.environ['ASTREX_RUN_DIR'])
         self.headless = headless
+        self.trial = trial
+        self.trial_ready_path = self.run / 'trial_ready.json' if trial is not None else None
+        self.trial_initialized = False
+        self.trial_first_feedback_pending = False
         experience = Path(os.environ['ASTREX_ISAAC_LAB_ROOT']) / os.environ['ASTREX_ISAAC_EXPERIENCE']
         self.app = AppLauncher(headless=headless, experience=str(experience), kit_args=(
             f'--/app/userConfigPath={self.run / "user.config.json"} '
@@ -106,17 +110,37 @@ class CartpoleROS:
         self.names = list(self.base.cartpole.joint_names)
         self.cart = self.names.index('slider_to_cart')
         self.pole = self.names.index('cart_to_pole')
+        cart_limits = self.base.cartpole.data.joint_pos_limits[0, self.cart].tolist()
+        if self.trial is not None:
+            for key in ('x0', 'hold_position'):
+                value = self.trial[key]
+                if not cart_limits[0] <= value <= cart_limits[1] or abs(value) > cfg.max_cart_pos:
+                    raise RuntimeError(
+                        f'Trial {key}={value} m is outside cart limits {cart_limits} '
+                        f'or scene boundary +/-{cfg.max_cart_pos} m')
         self.articulation = SingleArticulation(self.root, reset_xform_properties=False)
         self.articulation.initialize()
         print('ROS_STARTUP_STAGE articulation_initialized', flush=True)
         self.create_graph()
+        if self.trial is not None:
+            # Let the bridge create its DDS endpoints on one zero-state physics step,
+            # but disconnect Controller execution before Subscribe can run.
+            self.og.Controller.edit(self.path, {self.og.Controller.Keys.DISCONNECT: [
+                (self.path + SUBSCRIBE_EXEC_OUT, self.path + CONTROLLER_EXEC_IN)]})
         self.zero_effort()
         self.clear_controller_target()
+        if self.trial is not None:
+            self.base.sim.step(render=not self.headless)
+            self.base.scene.update(self.base.cfg.sim.dt)
+            self.hold_trial_rest()
+            self.close_command_acceptance()
+            self.clear_controller_target()
         print('ROS_STARTUP_STAGE effort_zeroed', flush=True)
         ours, others = self.graph_prims()
         if len(ours) != 1 or ours[0] != self.graph_path:
             raise RuntimeError(f'Expected one AstrEX ROS graph prim: {ours} (others: {others})')
-        self.open_command_acceptance()
+        if self.trial is None:
+            self.open_command_acceptance()
         self.event('ready', graph=self.path, joints=self.names, articulation=self.root,
                    device=str(self.base.sim.device), dt=cfg.sim.dt, decimation=cfg.decimation,
                    experience=str(Path(os.environ['ASTREX_ISAAC_LAB_ROOT']) / os.environ['ASTREX_ISAAC_EXPERIENCE']),
@@ -128,6 +152,8 @@ class CartpoleROS:
                    or os.environ.get('ASTREX_RMW_IMPLEMENTATION', ''),
                    graph_path=self.graph_path, graph_creations=self.graph_creations,
                    astrex_graph_count=len(ours), command_gate=self.command_gate,
+                   trial=self.trial, cart_joint_limits=cart_limits,
+                   scene_max_cart_pos=cfg.max_cart_pos,
                    publish=['/clock', '/joint_states'], subscribe=['/joint_command'])
         (self.run / 'ready.json').write_text(json.dumps({'graph': self.path, 'pid': os.getpid()}))
         print('Waiting for ROS commands', flush=True)
@@ -185,6 +211,62 @@ class CartpoleROS:
             self.torch.zeros(len(self.names), dtype=self.torch.float32, device=device))
         # Clear Lab's buffer too: env.reset() flushes scene data once.
         self.base.cartpole.set_joint_effort_target(self.torch.zeros_like(self.base.cartpole.data.joint_pos))
+
+    def hold_trial_rest(self):
+        """Pin the unstarted trial to the exact zero state while its ROS node starts."""
+        self.zero_effort()
+        rest = self.torch.zeros_like(self.base.cartpole.data.joint_pos)
+        self.base.cartpole.write_joint_state_to_sim(rest, rest.clone())
+
+    def maybe_initialize_trial(self):
+        """Arm a deterministic initial state only after the external controller is ready."""
+        if self.trial is None or self.trial_initialized or not self.trial_ready_path.exists():
+            return
+        ready = json.loads(self.trial_ready_path.read_text())
+        required = {'x0', 'theta0', 'hold_position', 'controller_pid', 'trial_id'}
+        if not isinstance(ready, dict) or set(ready) != required:
+            raise RuntimeError(f'Invalid trial_ready.json schema; expected {sorted(required)}')
+        if ready['trial_id'] != self.run.name:
+            raise RuntimeError('trial_ready.json trial_id does not match this run')
+        for key in ('x0', 'theta0', 'hold_position'):
+            value = ready[key]
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                raise RuntimeError(f'Invalid trial_ready.json {key}')
+            if value != self.trial[key]:
+                raise RuntimeError(f'trial_ready.json {key} does not match launched trial')
+        pid = ready['controller_pid']
+        if isinstance(pid, bool) or not isinstance(pid, int) or pid <= 1:
+            raise RuntimeError('Invalid trial_ready.json controller_pid')
+        try:
+            os.kill(pid, 0)
+        except OSError as exc:
+            raise RuntimeError(f'Trial controller PID {pid} is not live') from exc
+
+        # The gate routine advances one zero-state step to drain any stale command.
+        self.hold_trial_rest()
+        self.open_command_acceptance()
+        self.zero_effort()
+        self.clear_controller_target()
+        position = self.torch.zeros_like(self.base.cartpole.data.joint_pos)
+        velocity = self.torch.zeros_like(position)
+        position[0, self.cart] = self.trial['x0']
+        position[0, self.pole] = self.trial['theta0']
+        self.base.cartpole.write_joint_state_to_sim(position, velocity)
+        actual_position = self.articulation.get_joint_positions()
+        actual_velocity = self.articulation.get_joint_velocities()
+        if actual_position is None or actual_velocity is None:
+            raise RuntimeError('Trial PhysX articulation read-back unavailable')
+        actual_position = actual_position.tolist()
+        actual_velocity = actual_velocity.tolist()
+        if (abs(actual_position[self.cart] - self.trial['x0']) > 1e-6
+                or abs(actual_position[self.pole] - self.trial['theta0']) > 1e-6
+                or any(abs(value) > 1e-6 for value in actual_velocity)):
+            raise RuntimeError(f'Trial initial state read-back failed: {actual_position}, {actual_velocity}')
+        self.trial_initialized = True
+        self.trial_first_feedback_pending = True
+        self.event('trial_initialized', trial_id=self.run.name, requested=self.trial,
+                   controller_pid=pid, state=self.snapshot(),
+                   physx_readback={'position': actual_position, 'velocity': actual_velocity})
 
     def snapshot(self):
         q = self.base.cartpole.data.joint_pos[0].tolist()
@@ -364,12 +446,20 @@ class CartpoleROS:
             return False
 
     def step(self):
+        if self.trial is not None and not self.trial_initialized:
+            self.hold_trial_rest()
+            self.maybe_initialize_trial()
         self.base.sim.step(render=not self.headless)
         self.base.scene.update(self.base.cfg.sim.dt)
+        if self.trial is not None and not self.trial_initialized:
+            self.hold_trial_rest()
         self.steps += 1
         row = self.snapshot()
         row['boundary'] = self.boundary_reason(row)
         self.samples.write(json.dumps(row, allow_nan=False) + '\n')
+        if self.trial_first_feedback_pending:
+            self.event('trial_first_feedback', trial_id=self.run.name, state=row)
+            self.trial_first_feedback_pending = False
         if self.steps % 120 == 0:
             self.samples.flush()
         if row['boundary'] and self.fault is None:
@@ -394,8 +484,22 @@ class CartpoleROS:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--headless', action='store_true')
+    parser.add_argument('--trial-x0', type=float)
+    parser.add_argument('--trial-theta0', type=float)
+    parser.add_argument('--trial-hold-position', type=float)
     args = parser.parse_args()
-    runtime = CartpoleROS(headless=args.headless)
+    trial_values = (args.trial_x0, args.trial_theta0, args.trial_hold_position)
+    trial = None
+    if any(value is not None for value in trial_values):
+        if any(value is None for value in trial_values) or not all(math.isfinite(value) for value in trial_values):
+            parser.error('All trial initial-state options must be present and finite')
+        if abs(args.trial_theta0) > math.radians(10):
+            parser.error('Trial initial pole angle must be within 10 degrees')
+        if abs(args.trial_x0 - args.trial_hold_position) > 0.25:
+            parser.error('Trial initial cart offset must be within 0.25 m of hold position')
+        trial = {'x0': args.trial_x0, 'theta0': args.trial_theta0,
+                 'hold_position': args.trial_hold_position}
+    runtime = CartpoleROS(headless=args.headless, trial=trial)
     def stop(signum, frame):
         runtime.keep_running = False
     signal.signal(signal.SIGINT, stop)

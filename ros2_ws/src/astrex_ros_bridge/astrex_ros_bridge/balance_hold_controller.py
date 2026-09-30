@@ -163,8 +163,8 @@ class BalanceHoldController:
         if self.gain.shape != (1, 4) or not np.all(np.isfinite(self.gain)):
             raise ValueError("K must be a finite 1x4 matrix")
 
-    def compute_force_from_state(self, state: Sequence[float], target_x: float) -> float:
-        """Compute u=-K@[x-target, xdot, theta, thetadot], then clamp."""
+    def compute_raw_force_from_state(self, state: Sequence[float], target_x: float) -> float:
+        """Return the finite, unclamped LQR suggestion for logging and limits."""
         values = np.asarray(state, dtype=float)
         if values.shape != (4,):
             raise ValueError("State must have exactly four scalar values")
@@ -172,7 +172,15 @@ class BalanceHoldController:
             raise ValueError("State and target_x must be finite")
         error = values.copy()
         error[0] -= target_x
-        raw_force = -(self.gain @ error).item()
+        with np.errstate(over='ignore', invalid='ignore'):
+            raw_force = float(-(self.gain @ error).item())
+        if not math.isfinite(raw_force):
+            raise ValueError("LQR output must be finite")
+        return raw_force
+
+    def compute_force_from_state(self, state: Sequence[float], target_x: float) -> float:
+        """Compute u=-K@[x-target, xdot, theta, thetadot], then clamp."""
+        raw_force = self.compute_raw_force_from_state(state, target_x)
         return float(np.clip(raw_force, -self.max_force, self.max_force))
 
     def compute_force(

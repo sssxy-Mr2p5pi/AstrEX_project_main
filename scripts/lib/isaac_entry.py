@@ -5,6 +5,7 @@ import fcntl
 import hashlib
 import importlib.metadata as metadata
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -122,7 +123,23 @@ def arguments(argv):
                 parser.error('Profile/device/output overrides are not supported: ' + item)
         return profile, args, extra
     parser.add_argument('--headless', action='store_true')
-    return profile, parser.parse_args(argv[1:]), []
+    if profile == 'ros':
+        parser.add_argument('--trial-x0', type=float, help='Cart position at trial start [m]')
+        parser.add_argument('--trial-theta0', type=float, help='Pole angle at trial start [rad]')
+        parser.add_argument('--trial-hold-position', type=float, help='Fixed cart target [m]')
+    args = parser.parse_args(argv[1:])
+    if profile == 'ros':
+        trial_values = (args.trial_x0, args.trial_theta0, args.trial_hold_position)
+        if any(value is not None for value in trial_values):
+            if any(value is None for value in trial_values):
+                parser.error('All three trial initial-state options are required together')
+            if not all(math.isfinite(value) for value in trial_values):
+                parser.error('Trial initial-state options must be finite')
+            if abs(args.trial_theta0) > math.radians(10):
+                parser.error('Trial initial pole angle must be within 10 degrees')
+            if abs(args.trial_x0 - args.trial_hold_position) > 0.25:
+                parser.error('Trial initial cart offset must be within 0.25 m of hold position')
+    return profile, args, []
 
 def main():
     profile, args, extra = arguments(sys.argv[1:])
@@ -171,6 +188,9 @@ def main():
                        RMW_IMPLEMENTATION=setting('RMW_IMPLEMENTATION'), LD_LIBRARY_PATH=check['bridge'] + '/jazzy/lib')
             script = ROOT / 'sim/scripts/run_ros_cartpole.py'
             tail = ['--headless'] if args.headless else []
+            if args.trial_x0 is not None:
+                tail += ['--trial-x0', repr(args.trial_x0), '--trial-theta0', repr(args.trial_theta0),
+                         '--trial-hold-position', repr(args.trial_hold_position)]
         else:
             script = ROOT / 'sim/scripts/rl_official.py'
             tail = ['--task', args.task, '--num_envs', str(args.num_envs), '--seed', str(args.seed),
