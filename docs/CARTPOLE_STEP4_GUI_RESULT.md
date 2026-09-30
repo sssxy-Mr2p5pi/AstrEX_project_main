@@ -1,6 +1,6 @@
 # CartPole Step 4：移动与顺序保持验收
 
-日期：2026-09-30。状态：P0/P1/P2/P3 完成；M1/M2/M3 GUI 实测和人工观察通过；P4 收尾进行中。
+日期：2026-09-30。状态：P0→P4 完成，STEP4_GUI_MVP=PASS。
 
 本轮只执行 [Step 4 计划](CARTPOLE_STEP4_GUI_MVP_PLAN.md)。Step 3 B/C 已完成，不重新核对其成绩，也不重跑矩阵。
 
@@ -17,7 +17,8 @@
 - P0 提交：`7484915`，归档 pulse 工具并保存 [历史索引](CARTPOLE_EXPERIMENT_HISTORY.md)。
 - P1 提交：`24ccc21`，统一任务入口与独立分析器。
 - P2 提交：`d5f865f`，严格 dry-run 验收。
-- 相关单元测试：131 项通过。测试消息只存在于测试进程；ROS 节点测试使用 domain 97，不向真实 domain 63 注入状态。
+- P3 提交：`66f7571`，GUI 实测与逐物理步日志修正。
+- P1 相关单元测试：131 项通过。测试消息只存在于测试进程；ROS 节点测试使用 domain 97，不向真实 domain 63 注入状态。
 - 旧 `astrex_ros_bridge` build/install 已移动至共享历史目录，不删除源码 symlink 指向的内容。
 - 仅定向构建 `astrex_ros_bridge`，构建成功。新终端确认实际导入路径和 `ros2 run astrex_ros_bridge cartpole_trial --help`。
 
@@ -97,11 +98,33 @@ M3 在线返回 `DEMO_SUCCESS`，但前 0.3 仿真秒中有 17 条半步反馈�
 
 配置固定为 Sim 5.1.0.0、Lab v2.3.2、CPU PhysX、domain 63。K、包版本和官方资产未修改。现有四项 metadata warning 保留，没有新增 warning。
 
-保护快照：`/data/shared/AstrEX_project_data/logs/isaac/cartpole_step4/20260930T125010Z_session/protection/`。结束后还需比较包清单、Lab 状态、受保护文件和用户暂存差异指纹。
+保护快照：`/data/shared/AstrEX_project_data/logs/isaac/cartpole_step4/20260930T125010Z_session/protection/`。执行前后 pip freeze、Conda export、Lab HEAD/状态、受保护文件指纹均逐字一致。官方 Lab 仍为 `37ddf626871758333d6ed89cf64ad702aef127d0`，无源码改动。
+
+用户原有 50 项暂存改动保持原样。暂存差异 SHA256 仍为 `6266494d7b23fcc6f83dc7dbcd459153c3cb7fab53e3711c0f72e9ab1f1b77a9`。没有处理 `ros2_ws/src/tmp` 的原有状态，也没有 push。
 
 Controller 输入不等于 PhysX 实测 applied effort。真实施力字段仍标为 N/A。
 
-## 6. 当前使用方式
+## 6. P4 清理与验收
+
+从活动源码移出 10 个退休文件：B/C 两个运行器、两个分析器、四个工具测试，以及旧独立 dry-run 节点与其测试。完整路径见 [历史索引](CARTPOLE_EXPERIMENT_HISTORY.md)。一次性归档位于 `20260930T125010Z_session/history/retired_step3/`；10 个文件的 SHA256 均与 Git `66f7571` 对应内容一致。
+
+7 个退休文件缓存移至 `history/retired_cache/`。旧安装别名 `balance_hold_dry_run`、`balance_hold_closed_loop` 移至 `history/retired_installed_entries/`。它们都可恢复，原始实验数据未移动或删除。
+
+保留当前 `balance_hold_closed_loop_node.py`、Controller、StateCache、参考与计时模块。保留两个 reset/命令隔离专项测试。B/C 报告仅增加 HISTORICAL 说明，正文结论不变。归属无法确认的旧构建日志仍保留。
+
+| 收尾检查 | 结果 |
+| --- | --- |
+| 当前 `astrex_ros_bridge` 定向重建 | PASS，1.01 s；日志在 `build_log_p4/` |
+| 新终端 console entry / metadata / 实际导入 | 仅 `cartpole_trial`、`state_cache`；模块指向当前 build/source |
+| 活动源码对退休模块的依赖 | 没有残留导入 |
+| 清理后的相关单元测试 | 148 PASS |
+| 当前两个工具及 ROS entry 的 `--help` | PASS，不启动仿真 |
+| `git diff --check` | PASS |
+| 环境、官方源码、K、用户暂存保护 | PASS |
+
+P4 没有改变控制行为，故不重复三组 GUI。所有本轮模拟器和控制进程都已正常关闭。
+
+## 7. 当前使用方式
 
 严格只读计算：
 
@@ -109,12 +132,30 @@ Controller 输入不等于 PhysX 实测 applied effort。真实施力字段仍�
 /usr/bin/python3 -B scripts/run_cartpole_trial.py --mode dry-run
 ```
 
-GUI 三组试验：
+GUI 三组试验默认自动顺序执行：
 
 ```bash
-/usr/bin/python3 -B scripts/run_cartpole_trial.py --wait-before-start
+/usr/bin/python3 -B scripts/run_cartpole_trial.py
 ```
 
-首组等待 `gui_continue.json` 观看准备信号。后两组通过后自动进入下一组；失败则停止。每个模拟器进程上限 600 本地秒。全部产物保存在共享数据，不进入 Git。
+只看最终顺序演示，并在成功后保留窗口 45 秒：
 
-GUI 和兼容性回归均已通过。P4 将归档已退休的阶段专用程序，并检查当前入口、保护快照和用户暂存内容。收尾前不宣布全部执行完成。
+```bash
+/usr/bin/python3 -B scripts/run_cartpole_trial.py --case M3 --keep-gui-seconds 45
+```
+
+当前固定目标单例：
+
+```bash
+/usr/bin/python3 -B scripts/run_cartpole_trial.py --case hold_regression
+```
+
+`--case M1`、`--case M2` 可选择单组。`--wait-before-start` 可让首组等待本次输出目录内的 `gui_continue.json`，内容为 `{"continue": true}`。H1 工具已确认视角，本轮无须人工逐组启动。
+
+失败时停止后续工况。每个模拟器进程上限 600 本地秒。每次创建独立共享输出目录，终端打印真实路径。独立分析器可接收 `trial` 目录；重新分析历史证据时，用 `--output` 指定新的文件，避免覆盖原 assessment。
+
+## 8. 完成范围
+
+本轮证明小范围 GUI 移动与严格顺序保持可运行，保留了两次独立核对失败及修正记录。不把成功后的自由运动记作控制成绩，也不声称长时间或任意初态稳定。
+
+Step 4 已完成。自定义 ROS Action、Grounder 和正式 Runner 尚未实现。本轮不自动进入下一阶段。

@@ -1,5 +1,7 @@
 # CartPole Step 3D：BalanceHold B 段闭环验收
 
+> HISTORICAL：B 段已完成。原结论与原始证据保留；日常试验入口由 [Step 4 GUI 入口与报告](CARTPOLE_STEP4_GUI_RESULT.md)接替，不再默认执行 B 矩阵。
+
 结论：按本轮预先固定的 B 段判据，17/17 个计划工况 PASS。这里包含 1 个零初态接通检查和 16 个非零初态恢复试验。C 段尚未开始。
 
 ## 固定条件与判据

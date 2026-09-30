@@ -1,6 +1,6 @@
 # CartPole Step 4：严格 dry-run、GUI 闭环演示与历史清理计划
 
-日期：2026-09-30。状态：待执行。
+日期：2026-09-30。状态：已按 P0→P4 执行。结果见 [Step 4 GUI 验收报告](CARTPOLE_STEP4_GUI_RESULT.md)。下文保留本轮执行前的计划。
 
 目标：复用已经通过 C 阶段的控制链，在 Isaac GUI 中完成 MoveCart → 新状态 → BalanceHold 3 秒。取消独立数值动力学验证阶段。保留必要的代码检查和严格 dry-run，然后用少量真实闭环工况验收。
 

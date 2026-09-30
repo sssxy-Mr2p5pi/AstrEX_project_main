@@ -1,5 +1,7 @@
 # CartPole Step 3D：BalanceHold C 段验收
 
+> HISTORICAL：C 段已完成。原结论与原始证据保留；当前移动与顺序保持见 [Step 4 GUI 报告](CARTPOLE_STEP4_GUI_RESULT.md)，不再默认执行 C 矩阵。
+
 日期：2026-09-30。结论：6/6 个指定 Isaac 工况 PASS，均由节点在线返回 `SUCCESS`。独立日志分析确认每组连续稳定至少 3 仿真秒。本轮只完成 C 段，没有实现 MoveCart，没有重跑 B 段 17 组实验。
 
 ## 本轮实现
