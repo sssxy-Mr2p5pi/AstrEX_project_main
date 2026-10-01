@@ -1,0 +1,9 @@
+# Request
+bool enable          # true=开始，false=立即停止
+float32 effort       # 施加在 cart_to_pole 的力矩 [N·m]，符号决定转/摆方向
+float32 seconds      # >0 时到点自动停；0 = 一直持续到 enable=false
+bool oscillate       # true=在 ±90° 内自动反向（当前基线可跑）；false=单向持续
+---
+# Response
+bool accepted
+string message

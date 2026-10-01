@@ -25,7 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'state_cache = astrex_ros_bridge.state_cache_node:main',
-            'cartpole_trial = astrex_ros_bridge.balance_hold_closed_loop_node:main',
+            'cartpole_service = astrex_ros_bridge.cartpole_service_node:main',
         ],
     },
 )

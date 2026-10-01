@@ -1,0 +1,6 @@
+# Absolute slider_to_cart joint position in metres; inclusive range [-0.5, 0.5].
+float64 target_position_m
+---
+# True only after movement, independent three-second hold and confirmed zero.
+bool success
+string message

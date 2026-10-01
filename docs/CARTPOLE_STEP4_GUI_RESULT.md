@@ -2,7 +2,9 @@
 
 日期：2026-09-30。状态：P0→P4 完成，STEP4_GUI_MVP=PASS。
 
-本轮只执行 [Step 4 计划](CARTPOLE_STEP4_GUI_MVP_PLAN.md)。Step 3 B/C 已完成，不重新核对其成绩，也不重跑矩阵。
+历史说明（2026-10-01）：本文保留 Step 4 当时的结论和命令。旧入口及原始证据已归档，旧路径映射见 [实验历史索引](CARTPOLE_EXPERIMENT_HISTORY.md)。当前使用入口见 [CartPole 控制服务](CARTPOLE_CONTROL_SERVICE.md)。
+
+本轮只执行 [Step 4 计划](/data/shared/AstrEX_project_data/exports/cartpole_archive/20261001T161758+0800_2b96da8862/retired_source/docs/CARTPOLE_STEP4_GUI_MVP_PLAN.md)。Step 3 B/C 已完成，不重新核对其成绩，也不重跑矩阵。
 
 ## 1. 实现范围
 
