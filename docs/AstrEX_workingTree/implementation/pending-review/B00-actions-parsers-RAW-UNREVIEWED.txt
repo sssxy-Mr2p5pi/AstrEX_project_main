@@ -1,0 +1,1084 @@
+*** Begin Patch
+*** Update File: astrbot_ex/core/actions/models.py
+@@
+ def _scalar_json_size(value: Any, limit: int | None = None) -> int | None:
+@@
+     return size
+ 
+ 
++MAX_DIAGNOSTIC_PATH_LEN = 1024
++MAX_VALIDATION_WORK = MAX_VALIDATION_NODES
++
++
++def _child_path(path: str, suffix: str) -> str:
++    """Build a diagnostic path without allowing repeated unbounded copies."""
++    if len(path) >= MAX_DIAGNOSTIC_PATH_LEN:
++        return path
++    remaining = MAX_DIAGNOSTIC_PATH_LEN - len(path)
++    if len(suffix) <= remaining:
++        return path + suffix
++    if remaining <= 3:
++        return path[:MAX_DIAGNOSTIC_PATH_LEN]
++    return path + suffix[: remaining - 3] + "..."
++
++
+ def find_non_finite(value: Any, path: str = "$", *, depth: int = 0) -> ValidationError | None:
+@@
+-            stack.append(("visit", child, item_depth, f"{item_path}.{key}", 0))
++            stack.append(("visit", child, item_depth, _child_path(item_path, f".{key}"), 0))
+@@
+             stack.append(
+-                ("visit", child, item_depth, f"{item_path}[{child_index}]", 0)
++                (
++                    "visit",
++                    child,
++                    item_depth,
++                    _child_path(item_path, f"[{child_index}]"),
++                    0,
++                )
+             )
+@@
+-            stack.append(("visit", child, depth, f"{item_path}.{key}", 0))
++            stack.append(("visit", child, depth, _child_path(item_path, f".{key}"), 0))
+@@
+-            stack.append(("visit", child, depth, f"{item_path}[{child_index}]", 0))
++            stack.append(
++                (
++                    "visit",
++                    child,
++                    depth,
++                    _child_path(item_path, f"[{child_index}]"),
++                    0,
++                )
++            )
+*** Update File: astrbot_ex/core/actions/models.py
+@@
+ def require_int(value: Any, path: str, *, minimum: int | None = None, maximum: int | None = None) -> int:
+@@
+     return value
+ 
+ 
++def require_id(value: Any, path: str) -> str:
++    return require_text(value, path, max_len=MAX_ID_LEN)
++
++
++def require_sequence(value: Any, path: str) -> int:
++    return require_int(value, path, minimum=0, maximum=MAX_SEQUENCE)
++
++
+ def require_bool(value: Any, path: str) -> bool:
+@@
+ def require_lease(value: Any, path: str) -> int:
+-    """TTL/lease must be a strictly positive integer number of milliseconds."""
++    """TTL/lease must be a strictly positive bounded integer in milliseconds."""
+     if isinstance(value, bool) or not isinstance(value, int):
+         reject(ErrorCode.INVALID_TYPE, path, "must be an integer number of milliseconds")
+@@
+     if value == 0:
+         reject(ErrorCode.NON_POSITIVE_LEASE, path, "must be greater than zero")
++    if value > MAX_LEASE_MS:
++        reject(ErrorCode.RANGE_VIOLATION, path, f"must be <= {MAX_LEASE_MS}")
+     return value
++
++
++def _optional_text(value: Any, path: str, *, max_len: int = MAX_ID_LEN) -> str:
++    if not isinstance(value, str):
++        reject(ErrorCode.INVALID_TYPE, path, "must be a string")
++    if len(value) > max_len:
++        reject(ErrorCode.TEXT_TOO_LONG, path, f"must not exceed {max_len} characters")
++    return value
++
++
++def _reason_text(value: Any, path: str) -> str:
++    return _optional_text(value, path, max_len=MAX_ID_LEN)
++
++
++def _require_unique_string_list(
++    value: Any,
++    path: str,
++    *,
++    allow_empty: bool = True,
++) -> list[str]:
++    values = require_string_list(value, path, allow_empty=allow_empty)
++    if len(values) != len(set(values)):
++        reject(ErrorCode.SCHEMA_BOUNDS_CONFLICT, path, "items must be unique")
++    return values
++
++
++def _copy_bounded(value: Any, path: str) -> Any:
++    """Copy only after the complete value has passed the JSON budget."""
++    _check_input_budget(value, path)
++    try:
++        return copy.deepcopy(value)
++    except (TypeError, ValueError, RecursionError, MemoryError):
++        reject(ErrorCode.INVALID_TYPE, path, "value cannot be defensively copied")
+*** Update File: astrbot_ex/core/actions/models.py
+@@
+-            stack.append(("visit", child, item_depth, f"{item_path}.{key}", 0))
++            stack.append(("visit", child, item_depth, _child_path(item_path, f".{key}"), 0))
+@@
+-            stack.append(("visit", child, depth, f"{item_path}.{key}", 0))
++            stack.append(("visit", child, depth, _child_path(item_path, f".{key}"), 0))
+*** End Patch
+񎟿
+*** Update File: astrbot_ex/core/actions/models.py
+@@
+-        for key in _NUMERIC_KEYS:
+-            value = current.get(key)
+-            if value is None:
++        for key in _NUMERIC_KEYS:
++            if key not in current:
+                 continue
++            value = current[key]
+             if not isinstance(value, (int, float)) or isinstance(value, bool):
+                 errors.append(err(ErrorCode.INVALID_TYPE, f"{current_path}.{key}", f"{key} must be a number"))
+-            elif not math.isfinite(value):
++            elif not _number_is_finite(value):
+                 errors.append(err(ErrorCode.NON_FINITE_NUMBER, f"{current_path}.{key}", f"{key} must be finite"))
+*** Update File: astrbot_ex/core/actions/models.py
+@@
+ def _check_numeric(schema: dict[str, Any], value: int | float, path: str, errors: list[ValidationError]) -> None:
+@@
+-            if not isinstance(bound, (int, float)) or isinstance(bound, bool):
++            if not isinstance(bound, (int, float)) or isinstance(bound, bool):
+                 errors.append(err(ErrorCode.INVALID_TYPE, f"schema.{key}", f"{key} must be a number, got {type(bound).__name__}"))
+                 continue
++            if not _number_is_finite(bound):
++                errors.append(err(ErrorCode.NON_FINITE_NUMBER, f"schema.{key}", f"{key} must be finite"))
++                continue
+             if bad(value, bound):
+*** Update File: astrbot_ex/core/actions/models.py
+@@
+-def _json_equal(left: Any, right: Any) -> bool:
++class _ValidationWorkExceeded(Exception):
++    """Internal signal converted to a structured validation error."""
++
++
++def _json_equal(
++    left: Any,
++    right: Any,
++    work: list[int] | None = None,
++) -> bool:
+     """Compare bounded JSON values with JSON number/boolean semantics."""
++    if work is None:
++        work = [0]
+     stack: list[tuple[str, Any, Any, int, Any, int]] = [
+         ("compare", left, right, 0, None, 0)
+@@
+         if tag == "list_iter":
+@@
+             continue
+ 
++        work[0] += 1
++        if work[0] > MAX_VALIDATION_WORK:
++            raise _ValidationWorkExceeded
+         nodes += 1
+@@
+-def _validate_node(schema: dict[str, Any], value: Any, path: str, errors: list[ValidationError]) -> None:
++def _validate_node(
++    schema: dict[str, Any],
++    value: Any,
++    path: str,
++    errors: list[ValidationError],
++    work: list[int],
++) -> None:
+@@
+     # Apply enum check for any type, including enum-only schemas (no type keyword).
+     enum = schema.get("enum")
+     if isinstance(enum, list):
+-        found = any(_json_equal(value, allowed) for allowed in enum)
++        try:
++            found = any(_json_equal(value, allowed, work) for allowed in enum)
++        except _ValidationWorkExceeded:
++            errors.append(
++                err(
++                    ErrorCode.VALUE_BUDGET_EXCEEDED,
++                    path,
++                    "schema/value comparison exceeds validation work budget",
++                )
++            )
++            return
+         if not found:
+@@
+-                _validate_node(properties[key], item, f"{path}.{key}", errors)
++                _validate_node(
++                    properties[key],
++                    item,
++                    _child_path(path, f".{key}"),
++                    errors,
++                    work,
++                )
+@@
+-                _validate_node(additional, item, f"{path}.{key}", errors)
++                _validate_node(
++                    additional,
++                    item,
++                    _child_path(path, f".{key}"),
++                    errors,
++                    work,
++                )
+@@
+-                _validate_node(item_schema, item, f"{path}[{index}]", errors)
++                _validate_node(
++                    item_schema,
++                    item,
++                    _child_path(path, f"[{index}]"),
++                    errors,
++                    work,
++                )
+@@
+-    _validate_node(schema, params, path, errors)
++    _validate_node(schema, params, path, errors, [0])
+*** Update File: astrbot_ex/core/actions/models.py
+@@
+ class ActionCommand:
+@@
+     @classmethod
+     def parse(cls, data: Any) -> "ActionCommand":
++        _check_input_budget(data, "command")
+         raw = require_object(data, "command")
++        _reject_unknown_fields(
++            raw,
++            frozenset(
++                {
++                    "schema_version",
++                    "command_id",
++                    "ex_session",
++                    "goal_id",
++                    "goal_revision",
++                    "decision_id",
++                    "owner",
++                    "plugin_generation",
++                    "action_id",
++                    "operation",
++                    "params",
++                    "lease_ms",
++                }
++            ),
++            "command",
++        )
+         if "schema_version" not in raw:
+             reject(ErrorCode.MISSING_FIELD, "schema_version", "is required")
+-        if raw.get("schema_version") != SCHEMA_VERSION:
++        if (
++            isinstance(raw["schema_version"], bool)
++            or not isinstance(raw["schema_version"], int)
++            or raw["schema_version"] != SCHEMA_VERSION
++        ):
+             reject(
+                 ErrorCode.UNSUPPORTED_SCHEMA_VERSION,
+                 "schema_version",
+-                f"unsupported schema_version: {raw.get('schema_version')!r}",
++                f"unsupported schema_version: {raw['schema_version']!r}",
+             )
+-        operation = require_text(raw.get("operation"), "operation")
++        operation = require_text(raw.get("operation"), "operation")
+         if operation not in ALL_OPERATIONS:
+             reject(ErrorCode.UNSUPPORTED_OPERATION, "operation", f"unsupported operation: {operation}")
+-        params = raw.get("params")
+-        if params is None:
++        if "params" not in raw:
+             reject(ErrorCode.MISSING_PARAMS, "params", "is required")
+-        params = require_object(params, "params")
++        params = require_object(raw["params"], "params")
+         non_finite = find_non_finite(params)
+         if non_finite is not None:
+             raise ContractError(non_finite)
+         return cls(
+-            command_id=require_text(raw.get("command_id"), "command_id"),
+-            ex_session=require_text(raw.get("ex_session"), "ex_session"),
+-            goal_id=require_text(raw.get("goal_id"), "goal_id"),
+-            goal_revision=require_int(raw.get("goal_revision"), "goal_revision", minimum=0),
+-            decision_id=require_text(raw.get("decision_id"), "decision_id"),
+-            owner=require_text(raw.get("owner"), "owner"),
+-            plugin_generation=require_int(raw.get("plugin_generation"), "plugin_generation", minimum=0),
+-            action_id=require_text(raw.get("action_id"), "action_id"),
++            command_id=require_id(raw.get("command_id"), "command_id"),
++            ex_session=require_id(raw.get("ex_session"), "ex_session"),
++            goal_id=require_id(raw.get("goal_id"), "goal_id"),
++            goal_revision=require_sequence(raw.get("goal_revision"), "goal_revision"),
++            decision_id=require_id(raw.get("decision_id"), "decision_id"),
++            owner=require_id(raw.get("owner"), "owner"),
++            plugin_generation=require_sequence(raw.get("plugin_generation"), "plugin_generation"),
++            action_id=require_id(raw.get("action_id"), "action_id"),
+             operation=operation,
+-            params=params,
++            params=_copy_bounded(params, "params"),
+             lease_ms=require_lease(raw.get("lease_ms"), "lease_ms"),
+             schema_version=SCHEMA_VERSION,
+         )
+@@
+-            "params": self.params,
++            "params": _copy_bounded(self.params, "command.params"),
+*** Update File: astrbot_ex/core/actions/models.py
+@@
+ class ActionEvent:
+@@
+     status: str
+     reason_code: str = ""
+     details: dict[str, Any] = field(default_factory=dict)
++    schema_version: int = SCHEMA_VERSION
+ 
+     @classmethod
+     def parse(cls, data: Any) -> "ActionEvent":
++        _check_input_budget(data, "event")
+         raw = require_object(data, "event")
++        _reject_unknown_fields(
++            raw,
++            frozenset(
++                {
++                    "schema_version",
++                    "event_id",
++                    "event_seq",
++                    "ex_session",
++                    "task_id",
++                    "goal_id",
++                    "goal_revision",
++                    "command_id",
++                    "owner",
++                    "status",
++                    "reason_code",
++                    "details",
++                }
++            ),
++            "event",
++        )
++        if "schema_version" in raw and (
++            isinstance(raw["schema_version"], bool)
++            or not isinstance(raw["schema_version"], int)
++            or raw["schema_version"] != SCHEMA_VERSION
++        ):
++            reject(
++                ErrorCode.UNSUPPORTED_SCHEMA_VERSION,
++                "schema_version",
++                f"unsupported schema_version: {raw['schema_version']!r}",
++            )
+         status = require_text(raw.get("status"), "status")
+         if status not in LEGAL_TRANSITIONS:
+             reject(ErrorCode.INVALID_TYPE, "status", f"unknown status: {status}")
+         details = raw.get("details", {})
+         details = require_object(details, "details")
+@@
+         return cls(
+-            event_id=require_text(raw.get("event_id"), "event_id"),
+-            event_seq=require_int(raw.get("event_seq"), "event_seq", minimum=0),
+-            ex_session=require_text(raw.get("ex_session"), "ex_session"),
+-            task_id=require_text(raw.get("task_id"), "task_id"),
+-            goal_id=require_text(raw.get("goal_id"), "goal_id"),
+-            goal_revision=require_int(raw.get("goal_revision"), "goal_revision", minimum=0),
+-            command_id=require_text(raw.get("command_id"), "command_id"),
+-            owner=require_text(raw.get("owner"), "owner"),
++            event_id=require_id(raw.get("event_id"), "event_id"),
++            event_seq=require_sequence(raw.get("event_seq"), "event_seq"),
++            ex_session=require_id(raw.get("ex_session"), "ex_session"),
++            task_id=require_id(raw.get("task_id"), "task_id"),
++            goal_id=require_id(raw.get("goal_id"), "goal_id"),
++            goal_revision=require_sequence(raw.get("goal_revision"), "goal_revision"),
++            command_id=require_id(raw.get("command_id"), "command_id"),
++            owner=require_id(raw.get("owner"), "owner"),
+             status=status,
+-            reason_code=str(raw.get("reason_code", "")),
+-            details=details,
++            reason_code=_reason_text(raw.get("reason_code", ""), "reason_code"),
++            details=_copy_bounded(details, "details"),
++            schema_version=SCHEMA_VERSION,
+         )
+@@
+-            "event_id": self.event_id,
++            "schema_version": self.schema_version,
++            "event_id": self.event_id,
+@@
+-            "details": self.details,
++            "details": _copy_bounded(self.details, "event.details"),
+*** Update File: astrbot_ex/core/actions/models.py
+@@
+ _DANGER_LEVELS = frozenset({"low", "medium", "high"})
++_ACTION_DECLARATION_FIELDS = frozenset(
++    {
++        "action_id",
++        "description",
++        "schema",
++        "resources",
++        "operations",
++        "requires_runtime_state",
++        "requires_observations",
++        "max_duration_ms",
++        "cancel_timeout_ms",
++        "danger",
++    }
++)
++_MANIFEST_FIELDS = frozenset(
++    {
++        "action_api_version",
++        "actions",
++        "observation_guide",
++        "provides",
++        "ros2_ports",
++        "observation_sources",
++    }
++)
++_OBSERVATION_SOURCE_FIELDS = frozenset(
++    {"topic", "max_age_ms", "required_fields"}
++)
++_OBSERVATION_FIELD_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_.-]*$")
++_LEGACY_MANIFEST_FIELDS = frozenset({"id", "actions", "action_api_version"})
++_LEGACY_ACTION_FIELDS = frozenset({"action_id", "topic", "description"})
++
++
++def _parse_observation_sources(
++    value: Any,
++    path: str,
++) -> dict[str, dict[str, Any]]:
++    if not isinstance(value, dict):
++        reject(ErrorCode.INVALID_TYPE, path, "must be an object")
++    result: dict[str, dict[str, Any]] = {}
++    for name, source in value.items():
++        source_name = require_id(name, f"{path}.{name}")
++        if source_name in result:
++            reject(
++                ErrorCode.SCHEMA_BOUNDS_CONFLICT,
++                f"{path}.{source_name}",
++                "duplicate observation source",
++            )
++        source = require_object(source, f"{path}.{source_name}")
++        _reject_unknown_fields(
++            source,
++            _OBSERVATION_SOURCE_FIELDS,
++            f"{path}.{source_name}",
++        )
++        for field_name in _OBSERVATION_SOURCE_FIELDS:
++            if field_name not in source:
++                reject(
++                    ErrorCode.MISSING_FIELD,
++                    f"{path}.{source_name}.{field_name}",
++                    "is required",
++                )
++        topic = require_id(source["topic"], f"{path}.{source_name}.topic")
++        max_age_ms = require_lease(
++            source["max_age_ms"],
++            f"{path}.{source_name}.max_age_ms",
++        )
++        required_fields = _require_unique_string_list(
++            source["required_fields"],
++            f"{path}.{source_name}.required_fields",
++        )
++        for index, required_field in enumerate(required_fields):
++            if _OBSERVATION_FIELD_RE.fullmatch(required_field) is None:
++                reject(
++                    ErrorCode.INVALID_TYPE,
++                    f"{path}.{source_name}.required_fields[{index}]",
++                    "must be a dotted observation field path",
++                )
++        result[source_name] = {
++            "topic": topic,
++            "max_age_ms": max_age_ms,
++            "required_fields": list(required_fields),
++        }
++    return _copy_bounded(result, path)
+*** Update File: astrbot_ex/core/actions/models.py
+@@
+ class ActionDeclarationV2:
+@@
+-            "schema": self.schema,
++            "schema": _copy_bounded(self.schema, "action.schema"),
+@@
+ class ActionManifestV2:
+@@
+     ros2_ports: list[dict[str, Any]] = field(default_factory=list)
++    observation_sources: dict[str, dict[str, Any]] = field(default_factory=dict)
+@@
+-            "actions": [action.to_dict() for action in self.actions],
++            "actions": [action.to_dict() for action in self.actions],
+             "observation_guide": self.observation_guide,
+             "provides": list(self.provides),
+-            "ros2_ports": list(self.ros2_ports),
++            "ros2_ports": _copy_bounded(self.ros2_ports, "manifest.ros2_ports"),
++            "observation_sources": _copy_bounded(
++                self.observation_sources,
++                "manifest.observation_sources",
++            ),
+         }
+*** Update File: astrbot_ex/core/actions/models.py
+@@
+-def _validate_action_declaration(owner: str, raw: Any, path: str) -> ActionDeclarationV2:
++def _validate_action_declaration(
++    owner: str,
++    raw: Any,
++    path: str,
++) -> ActionDeclarationV2:
++    _check_input_budget(raw, path)
+     item = require_object(raw, path)
+-    action_id = require_text(item.get("action_id"), f"{path}.action_id")
++    _reject_unknown_fields(item, _ACTION_DECLARATION_FIELDS, path)
++    action_id = require_id(item.get("action_id"), f"{path}.action_id")
+     if _ACTION_ID_RE.match(action_id) is None:
+         reject(ErrorCode.INVALID_ACTION_ID, f"{path}.action_id", f"invalid action_id: {action_id}")
+-    if owner and not action_id.startswith(f"{owner}."):
++    if owner and manifest_owner(action_id) != owner:
+         reject(
+             ErrorCode.OWNER_MISMATCH,
+             f"{path}.action_id",
+             f"action_id must be owned by '{owner}': {action_id}",
+         )
+     description = require_text(item.get("description"), f"{path}.description")
+-    schema = item.get("schema")
+-    if schema is None:
++    if "schema" not in item:
+         reject(ErrorCode.MISSING_FIELD, f"{path}.schema", "is required")
++    schema = item["schema"]
++    if schema is None:
++        reject(ErrorCode.INVALID_TYPE, f"{path}.schema", "must be an object")
+     # Only validate the schema itself, not instance params (which would require values)
+     schema_errors = check_schema_supported(schema)
+     if schema_errors:
+         raise ContractError(schema_errors[0])
+-    operations = require_string_list(item.get("operations", []), f"{path}.operations", allow_empty=False)
++    schema = _copy_bounded(schema, f"{path}.schema")
++    operations = _require_unique_string_list(
++        item.get("operations", []),
++        f"{path}.operations",
++        allow_empty=False,
++    )
+@@
+-    resources = require_string_list(item.get("resources", []), f"{path}.resources")
++    resources = _require_unique_string_list(item.get("resources", []), f"{path}.resources")
+@@
+-    danger = str(item.get("danger", "low"))
++    danger = item.get("danger", "low")
++    if not isinstance(danger, str):
++        reject(ErrorCode.INVALID_TYPE, f"{path}.danger", "must be a string")
+     if danger not in _DANGER_LEVELS:
+         reject(ErrorCode.ENUM_VIOLATION, f"{path}.danger", f"danger must be one of {sorted(_DANGER_LEVELS)}")
+-    max_duration_ms = item.get("max_duration_ms")
+-    if max_duration_ms is not None:
+-        max_duration_ms = require_int(max_duration_ms, f"{path}.max_duration_ms", minimum=1)
+-    cancel_timeout_ms = item.get("cancel_timeout_ms")
++    max_duration_ms = None
++    if "max_duration_ms" in item:
++        max_duration_ms = require_lease(item["max_duration_ms"], f"{path}.max_duration_ms")
++    cancel_timeout_ms = None
++    if "cancel_timeout_ms" in item:
++        cancel_timeout_ms = require_lease(item["cancel_timeout_ms"], f"{path}.cancel_timeout_ms")
+     claims_cancel = CommandOperation.CANCEL in operations
+     if claims_cancel:
+         if cancel_timeout_ms is None:
+@@
+-        cancel_timeout_ms = require_int(cancel_timeout_ms, f"{path}.cancel_timeout_ms", minimum=1)
+     elif cancel_timeout_ms is not None:
+@@
+-    requires_runtime_state = require_string_list(
++    requires_runtime_state = _require_unique_string_list(
+         item.get("requires_runtime_state", []), f"{path}.requires_runtime_state"
+     )
+@@
+-    requires_observations = require_string_list(
++    requires_observations = _require_unique_string_list(
+         item.get("requires_observations", []), f"{path}.requires_observations"
+     )
+*** Update File: astrbot_ex/core/actions/models.py
+@@
+ def parse_action_manifest(data: Any, *, owner: str = "") -> ActionManifestV2:
+@@
+-    raw = require_object(data, "manifest")
++    _check_input_budget(data, "manifest")
++    raw = require_object(data, "manifest")
++    _reject_unknown_fields(raw, _MANIFEST_FIELDS, "manifest")
+@@
+-    version = raw.get("action_api_version")
++    version = raw.get("action_api_version")
+@@
+     if not raw_actions:
+         reject(ErrorCode.LENGTH_VIOLATION, "actions", "must not be empty")
++    observation_sources = _parse_observation_sources(
++        raw.get("observation_sources", {}),
++        "manifest.observation_sources",
++    )
+     actions: list[ActionDeclarationV2] = []
+@@
+         if declaration.action_id in seen:
+@@
+         seen.add(declaration.action_id)
++        for observation_name in declaration.requires_observations:
++            if observation_name not in observation_sources:
++                reject(
++                    ErrorCode.MISSING_FIELD,
++                    f"actions[{index}].requires_observations",
++                    f"unknown observation source: {observation_name}",
++                )
+         actions.append(declaration)
++    observation_guide = raw.get("observation_guide", "")
++    observation_guide = _optional_text(
++        observation_guide,
++        "manifest.observation_guide",
++        max_len=MAX_GOAL_TEXT_LEN,
++    )
++    provides = _require_unique_string_list(
++        raw.get("provides", []),
++        "manifest.provides",
++    )
++    raw_ports = raw.get("ros2_ports", [])
++    if not isinstance(raw_ports, list):
++        reject(ErrorCode.INVALID_TYPE, "manifest.ros2_ports", "must be an array")
++    ros2_ports: list[dict[str, Any]] = []
++    for index, port in enumerate(raw_ports):
++        ros2_ports.append(
++            _copy_bounded(
++                require_object(port, f"manifest.ros2_ports[{index}]"),
++                f"manifest.ros2_ports[{index}]",
++            )
++        )
+     return ActionManifestV2(
+         action_api_version=ACTION_API_VERSION_V2,
+         actions=actions,
+-        observation_guide=str(raw.get("observation_guide", "")),
+-        provides=require_string_list(raw.get("provides", []), "provides"),
+-        ros2_ports=list(raw.get("ros2_ports", [])),
++        observation_guide=observation_guide,
++        provides=provides,
++        ros2_ports=ros2_ports,
++        observation_sources=observation_sources,
+     )
+*** Update File: astrbot_ex/core/actions/models.py
+@@
+ def parse_legacy_action_manifest(data: Any) -> list[LegacyActionDeclaration]:
+     """Parse a v1 manifest. A v2 manifest is refused here (isolation is two-way)."""
++    _check_input_budget(data, "manifest")
+     raw = require_object(data, "manifest")
+-    if raw.get("action_api_version") == ACTION_API_VERSION_V2:
++    _reject_unknown_fields(raw, _LEGACY_MANIFEST_FIELDS, "manifest")
++    if "action_api_version" in raw:
++        version = raw["action_api_version"]
++        if (
++            isinstance(version, bool)
++            or not isinstance(version, int)
++            or version not in (SCHEMA_VERSION, ACTION_API_VERSION_V2)
++        ):
++            reject(
++                ErrorCode.UNSUPPORTED_ACTION_API_VERSION,
++                "action_api_version",
++                f"unsupported legacy action_api_version: {version!r}",
++            )
++        if version == ACTION_API_VERSION_V2:
++            reject(
++                ErrorCode.LEGACY_ISOLATION,
++                "action_api_version",
++                "v2 manifest cannot be parsed as a legacy topic action manifest",
++            )
++    raw_actions = raw.get("actions", [])
++    if not isinstance(raw_actions, list):
++        reject(ErrorCode.INVALID_TYPE, "actions", "must be an array")
++    legacy: list[LegacyActionDeclaration] = []
++    seen: set[str] = set()
++    for index, item in enumerate(raw_actions):
++        entry = require_object(item, f"actions[{index}]")
++        _reject_unknown_fields(entry, _LEGACY_ACTION_FIELDS, f"actions[{index}]")
++        action_id = require_id(entry.get("action_id"), f"actions[{index}].action_id")
++        if action_id in seen:
++            reject(
++                ErrorCode.DUPLICATE_ACTION_ID,
++                f"actions[{index}].action_id",
++                f"duplicate action declaration: {action_id}",
++            )
++        seen.add(action_id)
++        topic = entry.get("topic")
++        if topic is None:
++            reject(
++                ErrorCode.MISSING_FIELD,
++                f"actions[{index}].topic",
++                "legacy actions are delivered over a command topic and require one",
++            )
++        topic = require_id(topic, f"actions[{index}].topic")
++        if "description" in entry:
++            _optional_text(entry["description"], f"actions[{index}].description")
++        legacy.append(LegacyActionDeclaration(action_id=action_id, topic=topic))
++    return legacy
+-        reject(
+-            ErrorCode.LEGACY_ISOLATION,
+-            "action_api_version",
+-            "v2 manifest cannot be parsed as a legacy topic action manifest",
+-        )
+-    raw_actions = raw.get("actions", [])
+-    if not isinstance(raw_actions, list):
+-        reject(ErrorCode.INVALID_TYPE, "actions", "must be an array")
+-    legacy: list[LegacyActionDeclaration] = []
+-    for index, item in enumerate(raw_actions):
+-        entry = require_object(item, f"actions[{index}]")
+-        action_id = require_text(entry.get("action_id"), f"actions[{index}].action_id")
+-        topic = entry.get("topic")
+-        if topic is None:
+-            reject(
+-                ErrorCode.MISSING_FIELD,
+-                f"actions[{index}].topic",
+-                "legacy actions are delivered over a command topic and require one",
+-            )
+-        legacy.append(LegacyActionDeclaration(action_id=action_id, topic=require_text(topic, f"actions[{index}].topic")))
+-    return legacy
+*** Update File: astrbot_ex/core/actions/models.py
+@@
+     def resolve(self, request_id: str, payload: dict[str, Any]) -> str:
+         """Return ``new``, ``replay`` or raise a conflict."""
+-        require_text(request_id, "request_id")
+-        canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False)
++        _check_input_budget(request_id, "request_id")
++        request_id = require_id(request_id, "request_id")
++        _check_input_budget(payload, "payload")
++        require_object(payload, "payload")
++        try:
++            canonical = json.dumps(
++                payload,
++                sort_keys=True,
++                ensure_ascii=False,
++                allow_nan=False,
++                separators=(",", ":"),
++            )
++        except (TypeError, ValueError, OverflowError, RecursionError, MemoryError):
++            reject(
++                ErrorCode.INVALID_TYPE,
++                "payload",
++                "payload is not valid canonical JSON",
++            )
+         previous = self._seen.get(request_id)
+@@
+ def check_revision(expected: Any, current: int) -> int:
+     """Compare-then-set guard for goal replacement.
+ 
+-    When expected is None, the caller does not require CAS semantics and the
+-    current revision is returned unchanged (no increment). When present, expected
+-    must match current exactly, and the result is current + 1.
++    ``current`` is always validated and advanced by one. When ``expected`` is
++    present, it must match ``current`` exactly before the compare-and-set step.
+@@
+ def validate_command_against_manifest(
+@@
+ ) -> ActionDeclarationV2:
+     """Full admission check for a direct action command."""
+-    if current_ex_session is not None:
+-        check_ex_session(command.ex_session, current_ex_session)
+-    if current_revision is not None and command.goal_revision != current_revision:
++    if current_ex_session is None:
++        reject(ErrorCode.MISSING_FIELD, "current_ex_session", "is required")
++    if current_revision is None:
++        reject(ErrorCode.MISSING_FIELD, "current_revision", "is required")
++    if runtime_state is None:
++        reject(ErrorCode.MISSING_FIELD, "runtime_state", "is required")
++    current_ex_session = require_id(current_ex_session, "current_ex_session")
++    current_revision = require_sequence(current_revision, "current_revision")
++    runtime_state = require_text(runtime_state, "runtime_state")
++    check_ex_session(command.ex_session, current_ex_session)
++    if command.goal_revision != current_revision:
+         reject(
+             ErrorCode.REVISION_CONFLICT,
+@@
+-        declaration.requires_runtime_state
+-        and runtime_state is not None
+-        and runtime_state not in declaration.requires_runtime_state
++        declaration.requires_runtime_state
++        and runtime_state not in declaration.requires_runtime_state
+@@
+             f"{command.action_id} requires runtime state {declaration.requires_runtime_state}, got {runtime_state}",
+         )
++    if runtime_state not in KNOWN_RUNTIME_STATES:
++        reject(
++            ErrorCode.ENUM_VIOLATION,
++            "runtime_state",
++            f"unknown runtime state: {runtime_state}",
++        )
++    if (
++        declaration.max_duration_ms is not None
++        and command.lease_ms > declaration.max_duration_ms
++    ):
++        reject(
++            ErrorCode.RANGE_VIOLATION,
++            "lease_ms",
++            f"lease_ms exceeds max_duration_ms {declaration.max_duration_ms}",
++        )
+*** Add File: tests/test_action_contract_validation.py
++from __future__ import annotations
++
++import copy
++import unittest
++
++from astrbot_ex.core.actions import models
++
++
++def _manifest() -> dict[str, object]:
++    return {
++        "action_api_version": 2,
++        "actions": [
++            {
++                "action_id": "owner.move.v1",
++                "description": "Move.",
++                "schema": {
++                    "type": "object",
++                    "properties": {"distance": {"type": "number"}},
++                    "required": ["distance"],
++                    "additionalProperties": False,
++                },
++                "resources": ["base_motion"],
++                "operations": ["start", "cancel"],
++                "requires_runtime_state": ["running"],
++                "requires_observations": ["front_clearance"],
++                "max_duration_ms": 5000,
++                "cancel_timeout_ms": 300,
++                "danger": "low",
++            }
++        ],
++        "observation_guide": "guide.md",
++        "provides": ["action_owner"],
++        "ros2_ports": [{"name": "input"}],
++        "observation_sources": {
++            "front_clearance": {
++                "topic": "world.front_clearance",
++                "max_age_ms": 1000,
++                "required_fields": ["distance.m"],
++            }
++        },
++    }
++
++
++def _command() -> dict[str, object]:
++    return {
++        "schema_version": 1,
++        "command_id": "command-1",
++        "ex_session": "session-1",
++        "goal_id": "goal-1",
++        "goal_revision": 2,
++        "decision_id": "decision-1",
++        "owner": "owner",
++        "plugin_generation": 1,
++        "action_id": "owner.move.v1",
++        "operation": "start",
++        "params": {"distance": 1.0},
++        "lease_ms": 1000,
++    }
++
++
++def _event() -> dict[str, object]:
++    return {
++        "schema_version": 1,
++        "event_id": "event-1",
++        "event_seq": 1,
++        "ex_session": "session-1",
++        "task_id": "task-1",
++        "goal_id": "goal-1",
++        "goal_revision": 2,
++        "command_id": "command-1",
++        "owner": "owner",
++        "status": "running",
++        "reason_code": "",
++        "details": {"nested": {"value": 1}},
++    }
++
++
++class ActionParserTests(unittest.TestCase):
++    def assert_contract_error(self, call, code: str) -> None:
++        with self.assertRaises(models.ContractError) as raised:
++            call()
++        self.assertEqual(raised.exception.error.code, code)
++
++    def test_command_is_bounded_strict_and_defensively_copied(self) -> None:
++        payload = _command()
++        command = models.ActionCommand.parse(payload)
++        payload["params"]["distance"] = 99
++        self.assertEqual(command.params["distance"], 1.0)
++        output = command.to_dict()
++        output["params"]["distance"] = 77
++        self.assertEqual(command.params["distance"], 1.0)
++
++        unknown = _command()
++        unknown["extra"] = True
++        self.assert_contract_error(
++            lambda: models.ActionCommand.parse(unknown),
++            models.ErrorCode.UNKNOWN_FIELD,
++        )
++        for version in (True, 1.0, "1", 2):
++            invalid = _command()
++            invalid["schema_version"] = version
++            self.assert_contract_error(
++                lambda invalid=invalid: models.ActionCommand.parse(invalid),
++                models.ErrorCode.UNSUPPORTED_SCHEMA_VERSION,
++            )
++
++    def test_event_sequence_version_reason_and_copy_are_strict(self) -> None:
++        event = models.ActionEvent.parse(_event())
++        raw = _event()
++        raw["details"]["nested"]["value"] = 9
++        self.assertEqual(event.details["nested"]["value"], 1)
++        output = event.to_dict()
++        output["details"]["nested"]["value"] = 8
++        self.assertEqual(event.details["nested"]["value"], 1)
++
++        for sequence in (0, True, 2**53):
++            invalid = _event()
++            invalid["event_seq"] = sequence
++            self.assert_contract_error(
++                lambda invalid=invalid: models.ActionEvent.parse(invalid),
++                models.ErrorCode.INVALID_TYPE
++                if sequence is True
++                else models.ErrorCode.RANGE_VIOLATION,
++            )
++
++        invalid_reason = _event()
++        invalid_reason["reason_code"] = 123
++        self.assert_contract_error(
++            lambda: models.ActionEvent.parse(invalid_reason),
++            models.ErrorCode.INVALID_TYPE,
++        )
++
++        invalid_version = _event()
++        invalid_version["schema_version"] = 1.0
++        self.assert_contract_error(
++            lambda: models.ActionEvent.parse(invalid_version),
++            models.ErrorCode.UNSUPPORTED_SCHEMA_VERSION,
++        )
++
++    def test_manifest_contract_and_roundtrip_are_strict(self) -> None:
++        raw = _manifest()
++        manifest = models.parse_action_manifest(raw, owner="owner")
++        raw["actions"][0]["schema"]["properties"]["distance"]["type"] = "string"
++        raw["ros2_ports"][0]["name"] = "changed"
++        raw["observation_sources"]["front_clearance"]["required_fields"].append(
++            "extra"
++        )
++        encoded = manifest.to_dict()
++        self.assertEqual(
++            encoded["actions"][0]["schema"]["properties"]["distance"]["type"],
++            "number",
++        )
++        self.assertEqual(encoded["ros2_ports"][0]["name"], "input")
++        self.assertEqual(
++            encoded["observation_sources"]["front_clearance"]["required_fields"],
++            ["distance.m"],
++        )
++
++        unknown = _manifest()
++        unknown["extra"] = True
++        self.assert_contract_error(
++            lambda: models.parse_action_manifest(unknown, owner="owner"),
++            models.ErrorCode.UNKNOWN_FIELD,
++        )
++
++        missing_source = _manifest()
++        missing_source["observation_sources"] = {}
++        self.assert_contract_error(
++            lambda: models.parse_action_manifest(missing_source, owner="owner"),
++            models.ErrorCode.MISSING_FIELD,
++        )
++
++    def test_manifest_rejects_duplicates_and_coercion(self) -> None:
++        duplicate = _manifest()
++        duplicate["actions"][0]["operations"] = ["start", "start"]
++        self.assert_contract_error(
++            lambda: models.parse_action_manifest(duplicate, owner="owner"),
++            models.ErrorCode.SCHEMA_BOUNDS_CONFLICT,
++        )
++
++        bad_danger = _manifest()
++        bad_danger["actions"][0]["danger"] = 1
++        self.assert_contract_error(
++            lambda: models.parse_action_manifest(bad_danger, owner="owner"),
++            models.ErrorCode.INVALID_TYPE,
++        )
++
++        bad_duration = _manifest()
++        bad_duration["actions"][0]["max_duration_ms"] = 600001
++        self.assert_contract_error(
++            lambda: models.parse_action_manifest(bad_duration, owner="owner"),
++            models.ErrorCode.RANGE_VIOLATION,
++        )
++
++    def test_legacy_version_and_entry_fields_are_strict(self) -> None:
++        valid = {
++            "id": "legacy_demo",
++            "action_api_version": 1,
++            "actions": [
++                {
++                    "action_id": "legacy_demo.move.v1",
++                    "topic": "legacy_demo.move.v1",
++                    "description": "Legacy move.",
++                }
++            ],
++        }
++        self.assertEqual(len(models.parse_legacy_action_manifest(valid)), 1)
++
++        for version, code in (
++            (2, models.ErrorCode.LEGACY_ISOLATION),
++            (True, models.ErrorCode.UNSUPPORTED_ACTION_API_VERSION),
++            (1.0, models.ErrorCode.UNSUPPORTED_ACTION_API_VERSION),
++            ("1", models.ErrorCode.UNSUPPORTED_ACTION_API_VERSION),
++            (3, models.ErrorCode.UNSUPPORTED_ACTION_API_VERSION),
++        ):
++            invalid = copy.deepcopy(valid)
++            invalid["action_api_version"] = version
++            self.assert_contract_error(
++                lambda invalid=invalid: models.parse_legacy_action_manifest(invalid),
++                code,
++            )
++
++        unknown = copy.deepcopy(valid)
++        unknown["actions"][0]["extra"] = True
++        self.assert_contract_error(
++            lambda: models.parse_legacy_action_manifest(unknown),
++            models.ErrorCode.UNKNOWN_FIELD,
++        )
++
++    def test_idempotency_validates_before_insertion_and_ignores_key_order(self) -> None:
++        registry = models.IdempotencyRegistry()
++        self.assertEqual(registry.resolve("request-1", {"a": 1, "b": 2}), "new")
++        self.assertEqual(registry.resolve("request-1", {"b": 2, "a": 1}), "replay")
++
++        cyclic: list[object] = []
++        cyclic.append(cyclic)
++        self.assert_contract_error(
++            lambda: registry.resolve("request-2", {"value": cyclic}),
++            models.ErrorCode.INVALID_TYPE,
++        )
++        self.assertEqual(registry.resolve("request-2", {"value": 1}), "new")
++
++        invalid = {"value": float("nan")}
++        self.assert_contract_error(
++            lambda: registry.resolve("request-3", invalid),
++            models.ErrorCode.NON_FINITE_NUMBER,
++        )
++        self.assertEqual(registry.resolve("request-3", {"value": 1}), "new")
++
++    def test_admission_requires_explicit_fresh_runtime_facts_and_bounds_lease(self) -> None:
++        command = models.ActionCommand.parse(_command())
++        manifest = models.parse_action_manifest(_manifest(), owner="owner")
++        kwargs = {
++            "current_ex_session": "session-1",
++            "current_revision": 2,
++            "runtime_state": "running",
++        }
++        self.assertIs(
++            models.validate_command_against_manifest(
++                command,
++                manifest,
++                **kwargs,
++            ),
++            manifest.actions[0],
++        )
++        for key in kwargs:
++            invalid_kwargs = dict(kwargs)
++            invalid_kwargs[key] = None
++            self.assert_contract_error(
++                lambda invalid_kwargs=invalid_kwargs: models.validate_command_against_manifest(
++                    command,
++                    manifest,
++                    **invalid_kwargs,
++                ),
++                models.ErrorCode.MISSING_FIELD,
++            )
++
++        too_long = _command()
++        too_long["lease_ms"] = 5001
++        too_long_command = models.ActionCommand.parse(too_long)
++        self.assert_contract_error(
++            lambda: models.validate_command_against_manifest(
++                too_long_command,
++                manifest,
++                **kwargs,
++            ),
++            models.ErrorCode.RANGE_VIOLATION,
++        )
+*** End Patch

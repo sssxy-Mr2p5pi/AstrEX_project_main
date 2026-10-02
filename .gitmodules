@@ -1,3 +1,6 @@
 [submodule "apps/AstrBot"]
 	path = apps/AstrBot
 	url = https://github.com/AstrBotDevs/AstrBot.git
+[submodule "apps/adapters/astrbot/A.E.B"]
+	path = apps/adapters/astrbot/A.E.B
+	url = https://github.com/Steven-Wang-120/A.E.B.

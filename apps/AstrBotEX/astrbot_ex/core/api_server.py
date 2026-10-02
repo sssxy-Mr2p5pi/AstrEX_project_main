@@ -19,8 +19,21 @@ from typing import Any
 from urllib.parse import unquote, urlparse
 
 from astrbot_ex.core.astrbot_bridge import AstrBotBridge
+from astrbot_ex.core.actions.dispatcher import ActionDispatcher
+from astrbot_ex.core.actions.ledger import ActionLedger
+from astrbot_ex.core.actions.service import ActionService
+from astrbot_ex.core.actions.storage import prepare_action_ledger
+from astrbot_ex.core.decision.catalog import CapabilityCatalog
+from astrbot_ex.core.decision.service import DecisionService, ShutdownErrors
+from astrbot_ex.core.decision.management import DecisionManagement, ManagementSettings
+from astrbot_ex.core.decision.config import ManagementError
 from astrbot_ex.core.backup import SnapshotError, SnapshotService
 from astrbot_ex.core.connection_manager import ConnectionManager
+from astrbot_ex.core.environments import (
+    EnvironmentBusyError,
+    EnvironmentManager,
+    EnvironmentRevisionConflict,
+)
 from astrbot_ex.core.event_bus import EventBus
 from astrbot_ex.core.interaction_core import InteractionCore
 from astrbot_ex.core.local_plugins import LocalPluginManager
@@ -56,16 +69,53 @@ class RuntimeController:
             self._thread.start()
 
     def stop(self, reason: str = "stopped by api") -> None:
+        self.runtime.request_stop()
+        self._stop_event.set()
+        service = self.runtime.action_service
+        if service is not None:
+            service.stop_actions(reason)
+        self.runtime.stop(reason)
+
+    def pause(self) -> None:
+        self.runtime.request_stop()
+        if self.runtime.action_service is not None:
+            self.runtime.action_service.stop_actions("runtime paused")
         with self._lock:
-            self._stop_event.set()
-            self.runtime.stop(reason)
+            self.runtime.pause()
+
+    def fail(self, reason: str) -> None:
+        self.runtime.request_stop()
+        if self.runtime.action_service is not None:
+            self.runtime.action_service.stop_actions(reason)
+        self.runtime.fail(reason)
+        self._stop_event.set()
+
+    def change_mode(self, mode: str) -> None:
+        if mode not in ("legacy", "decision"):
+            raise ValueError("control_mode must be legacy or decision")
+        service = self.runtime.action_service
+        if service is None:
+            raise RuntimeError("action service unavailable")
+        if mode == service.control_mode:
+            return
+        service.revoke()
+        self.stop("control mode change")
+        service.change_mode(mode)
 
     def status(self) -> dict[str, Any]:
+        service = self.runtime.action_service
+        decision = self.runtime.decision_service
+        actions = decision.status() if decision is not None else service.status() if service is not None else {
+            "control_mode": "legacy", "gate_open": False, "blocked": False,
+            "unresolved": [], "error": None,
+        }
         with self._lock:
             active_skill = self.runtime.active_skill
             robot = self.runtime.world.robot
             return {
                 "runtime_state": self.runtime.state.value,
+                "control_mode": actions["control_mode"],
+                "actions": actions,
                 "tick_hz": self.tick_hz,
                 "active_skill": active_skill.plugin.id if active_skill else None,
                 "active_goal": active_skill.goal if active_skill else None,
@@ -97,6 +147,7 @@ class RuntimeController:
     def _tick_loop(self) -> None:
         interval = 1.0 / self.tick_hz if self.tick_hz > 0 else 0.2
         while not self._stop_event.is_set():
+            faulted = False
             with self._lock:
                 if self.runtime.state == RuntimeState.RUNNING:
                     try:
@@ -104,6 +155,12 @@ class RuntimeController:
                     except Exception as exc:
                         self.runtime.fail(f"runtime tick failed: {exc}")
                         self._stop_event.set()
+                        faulted = True
+                    if self.runtime.state == RuntimeState.FAULT:
+                        faulted = True
+                        self._stop_event.set()
+            if faulted and self.runtime.action_service is not None:
+                self.runtime.action_service.stop_actions("runtime tick fault")
             time.sleep(interval)
 
 
@@ -140,7 +197,11 @@ class AstrBotEXRequestHandler(BaseHTTPRequestHandler):
     server_version = "AstrBotEXAPI/0.1"
 
     def do_GET(self) -> None:
+        if not self._authorize_http():
+            return
         if self._try_send_static():
+            return
+        if self.server.decision_management.handle_http(self):
             return
         path = self._path()
         backup_filename = self._match_backup_filename(path)
@@ -148,10 +209,16 @@ class AstrBotEXRequestHandler(BaseHTTPRequestHandler):
             self._send_backup_download(backup_filename)
             return
         if path == "/api/status" or path == "/api/v1/ex/status":
-            self._send_json(self.controller.status())
+            status = self.controller.status()
+            environment_manager = getattr(self.server, "environment_manager", None)
+            if environment_manager is not None:
+                status["environment"] = environment_manager.status()
+            self._send_json(status)
             return
         if path == "/api/events" or path == "/api/v1/ex/events":
             self._send_events()
+            return
+        if self._environment_api(path, "GET"):
             return
         if path in {"/api/vision/sources", "/api/v1/ex/vision/sources"}:
             self._send_json(
@@ -250,13 +317,92 @@ class AstrBotEXRequestHandler(BaseHTTPRequestHandler):
             return
         self._send_json({"error": "not found"}, HTTPStatus.NOT_FOUND)
 
+    def _environment_api(self, path: str, method: str) -> bool:
+        manager = getattr(self.server, "environment_manager", None)
+        if manager is None:
+            return False
+        prefix = "/api/v1/ex/environments"
+        plugin_prefix = "/api/v1/ex/plugins/"
+        plugin_ros = path.startswith(plugin_prefix) and path.endswith("/ros2")
+        if not (path.startswith(prefix) or path in {"/api/environments", "/api/environments/select"} or plugin_ros):
+            return False
+        try:
+            status = HTTPStatus.OK
+            if method == "GET":
+                if plugin_ros:
+                    result = {"ok": True, "ros2": self.server.local_plugins.get_ros2(unquote(path[len(plugin_prefix):-5])),
+                              "environment": manager.snapshot()}
+                elif path in {prefix, "/api/environments", prefix + "/ros2/status"}:
+                    result = manager.status()
+                elif path == prefix + "/ros2/graph":
+                    result = manager.graph()
+                elif path == prefix + "/ros2/endpoints":
+                    result = manager.endpoints()
+                elif path == prefix + "/ros2/interfaces":
+                    result = manager.interfaces()
+                elif path.startswith(prefix + "/operations/"):
+                    operation = manager.get_operation(unquote(path.rsplit("/", 1)[-1]))
+                    if operation is None: raise KeyError("unknown environment operation")
+                    result = {"ok": True, "operation": operation}
+                else:
+                    return False
+            else:
+                payload = self._read_json()
+                if not isinstance(payload, dict): raise ValueError("request body must be an object")
+                if plugin_ros:
+                    manager._check_revision(expected_session=payload.get("expected_session"))
+                    result = self.server.local_plugins.update_ros2(unquote(path[len(plugin_prefix):-5]),
+                                                                   payload.get("bindings"), payload.get("expected_revision"))
+                elif path in {prefix + "/select", "/api/environments/select"}:
+                    result = manager.select(payload.get("mode"), expected_revision=payload.get("expected_revision"),
+                                            expected_session=payload.get("expected_session"))
+                    if result.get("accepted"): status = HTTPStatus.ACCEPTED
+                elif path == prefix + "/ros2/config":
+                    config = payload.get("config", {k: v for k, v in payload.items() if k not in ("expected_revision", "expected_session")})
+                    result = manager.configure_ros2(config, expected_revision=payload.get("expected_revision"),
+                                                    expected_session=payload.get("expected_session"))
+                elif path == prefix + "/ros2/discovery/refresh":
+                    result, status = manager.refresh(), HTTPStatus.ACCEPTED
+                elif path == prefix + "/ros2/interfaces/check":
+                    result = manager.check_interface(payload.get("message_type"))
+                else:
+                    return False
+            self._send_json(result, status)
+        except (EnvironmentRevisionConflict, EnvironmentBusyError) as exc:
+            code = "revision_conflict" if isinstance(exc, EnvironmentRevisionConflict) else "environment_busy"
+            self._send_json({"ok": False, "code": code, "message": str(exc), "error": str(exc), "details": manager.snapshot()}, HTTPStatus.CONFLICT)
+        except KeyError as exc:
+            self._send_json({"ok": False, "code": "not_found", "message": str(exc), "error": str(exc), "details": {}}, HTTPStatus.NOT_FOUND)
+        except ValueError as exc:
+            self._send_json({"ok": False, "code": "invalid_environment_request", "message": str(exc), "error": str(exc), "details": {}}, HTTPStatus.BAD_REQUEST)
+        return True
+
     def do_POST(self) -> None:
+        if not self._authorize_http():
+            return
+        if self.server.decision_management.handle_http(self):
+            return
+        self.server.decision_management.invalidate("legacy_write")
         path = self._path()
         if path == "/api/v1/ex/backups":
             self._create_backup()
             return
         if path == "/api/v1/ex/backups/upload":
             self._handle_backup_upload()
+            return
+        if self._environment_api(path, "POST"):
+            return
+        if path == "/api/v1/ex/runtime/control-mode":
+            try:
+                self.controller.change_mode(self._read_json().get("control_mode"))
+            except ValueError as exc:
+                self._send_json({"ok": False, "error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            except RuntimeError as exc:
+                self._send_json({"ok": False, "error": str(exc), "actions": self.controller.status()["actions"]},
+                                HTTPStatus.CONFLICT)
+                return
+            self._send_json({"ok": True, "control_mode": self.controller.runtime.action_service.control_mode})
             return
         if path == "/api/runtime/start" or path == "/api/v1/ex/runtime/start":
             try:
@@ -273,7 +419,9 @@ class AstrBotEXRequestHandler(BaseHTTPRequestHandler):
             payload = self._read_json()
             reason = str(payload.get("reason", "stopped by api"))
             self.controller.stop(reason)
-            self._send_json({"ok": True, "state": self.controller.runtime.state.value})
+            actions = self.controller.status()["actions"]
+            self._send_json({"ok": not actions["blocked"], "state": self.controller.runtime.state.value,
+                             "actions": actions}, HTTPStatus.CONFLICT if actions["blocked"] else HTTPStatus.OK)
             return
         if path in {"/api/vision/sources", "/api/v1/ex/vision/sources"}:
             payload = self._read_json()
@@ -305,6 +453,19 @@ class AstrBotEXRequestHandler(BaseHTTPRequestHandler):
             return
         if path in {"/api/plugins/upload", "/api/v1/ex/plugins/upload"}:
             self._handle_plugin_upload()
+            return
+        if path in {"/api/v1/ex/bridge/action/start", "/api/v1/ex/actions/start"}:
+            result = self.server.bridge.direct_action_start(self._read_json())
+            self._send_json(result, HTTPStatus.OK if result.get("ok") else HTTPStatus.BAD_REQUEST)
+            return
+        if path in {"/api/v1/ex/bridge/action/query", "/api/v1/ex/actions/query"}:
+            payload = self._read_json()
+            result = self.server.bridge.direct_action_query(str(payload.get("command_id", "")))
+            self._send_json(result, HTTPStatus.OK if result.get("ok") else HTTPStatus.BAD_REQUEST)
+            return
+        if path in {"/api/v1/ex/bridge/action/cancel", "/api/v1/ex/actions/cancel"}:
+            payload = self._read_json()
+            self._send_json({"ok": False, "error": "cancel requires trusted owner binding"}, HTTPStatus.BAD_REQUEST)
             return
         if path in {"/api/bridge/proposal", "/api/v1/ex/bridge/proposal", "/api/v1/ex/llm/proposal"}:
             result = self.server.bridge.handle_proposal(self._read_json())
@@ -465,6 +626,11 @@ class AstrBotEXRequestHandler(BaseHTTPRequestHandler):
         self._send_json({"error": "not found"}, HTTPStatus.NOT_FOUND)
 
     def do_PUT(self) -> None:
+        if not self._authorize_http():
+            return
+        if self.server.decision_management.handle_http(self):
+            return
+        self.server.decision_management.invalidate("legacy_write")
         path = self._path()
         connection_id = self._match_connection_id(path)
         if connection_id:
@@ -492,6 +658,11 @@ class AstrBotEXRequestHandler(BaseHTTPRequestHandler):
         self._send_json({"error": "not found"}, HTTPStatus.NOT_FOUND)
 
     def do_DELETE(self) -> None:
+        if not self._authorize_http():
+            return
+        if self.server.decision_management.handle_http(self):
+            return
+        self.server.decision_management.invalidate("legacy_write")
         path = self._path()
         connection_id = self._match_connection_id(path)
         if connection_id:
@@ -531,6 +702,14 @@ class AstrBotEXRequestHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format: str, *args: Any) -> None:
         return
+
+    def _authorize_http(self) -> bool:
+        management = getattr(self.server, "decision_management", None)
+        if management is None:
+            self._send_json({"ok": False, "code": "management_unavailable",
+                             "message": "management access is unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return False
+        return management.authorize(self)
 
     @property
     def controller(self) -> RuntimeController:
@@ -645,7 +824,6 @@ class AstrBotEXRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Disposition", f'attachment; filename="{path.name}"')
         self.send_header("Content-Length", str(path.stat().st_size))
         self.send_header("Cache-Control", "no-store")
-        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         with path.open("rb") as source:
             shutil.copyfileobj(source, self.wfile, length=1024 * 1024)
@@ -683,11 +861,14 @@ class AstrBotEXRequestHandler(BaseHTTPRequestHandler):
             self._send_json({"ok": False, "error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def _send_json(self, payload: Any, status: HTTPStatus = HTTPStatus.OK) -> None:
+        management = getattr(self.server, "decision_management", None)
+        if management is not None:
+            payload = management.sanitize(to_jsonable(payload))
         body = json.dumps(to_jsonable(payload), ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
 
@@ -858,7 +1039,7 @@ class AstrBotEXRequestHandler(BaseHTTPRequestHandler):
             relative = "index.html"
         elif path.startswith("/dashboard/"):
             relative = path.removeprefix("/dashboard/")
-        elif path in {"/index.html", "/styles.css", "/app.js"}:
+        elif path in {"/index.html", "/styles.css", "/app.js", "/environments.js"}:
             relative = path.lstrip("/")
         else:
             return False
@@ -890,9 +1071,8 @@ class AstrBotEXRequestHandler(BaseHTTPRequestHandler):
         stream = EventStream(self.controller)
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
-        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Cache-Control", "no-store")
         self.send_header("Connection", "keep-alive")
-        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         try:
             for event in stream.recent():
@@ -935,12 +1115,28 @@ class AstrBotEXRequestHandler(BaseHTTPRequestHandler):
         return fields
 
     def _write_sse(self, event_name: str, payload: Any) -> None:
+        management = getattr(self.server, "decision_management", None)
+        if management is not None:
+            payload = management.sse_payload(payload)
         data = json.dumps(to_jsonable(payload), ensure_ascii=False)
         self._write_raw(f"event: {event_name}\ndata: {data}\n\n")
 
     def _write_raw(self, text: str) -> None:
         self.wfile.write(text.encode("utf-8"))
         self.wfile.flush()
+
+
+class RuntimeCapabilityCatalog(CapabilityCatalog):
+    def __init__(self) -> None:
+        super().__init__()
+        self.on_change = None
+
+    def refresh(self, records):
+        before = self.snapshot().revision
+        snapshot = super().refresh(records)
+        if snapshot.revision != before and self.on_change is not None:
+            self.on_change()
+        return snapshot
 
 
 class AstrBotEXHTTPServer(ThreadingHTTPServer):
@@ -952,14 +1148,92 @@ class AstrBotEXHTTPServer(ThreadingHTTPServer):
     interaction_core: InteractionCore
     connections: ConnectionManager
     snapshot_service: SnapshotService
+    environment_manager: EnvironmentManager
+    action_service: ActionService
+    decision_management: DecisionManagement
+
+    def server_close(self) -> None:
+        errors = []
+        if hasattr(self, "decision_management"):
+            try:
+                self.decision_management.close()
+            except Exception as exc:
+                errors.append(exc)
+        try:
+            if hasattr(self, "controller"):
+                self.controller.stop("api server shutdown")
+            if hasattr(self, "environment_manager"):
+                self.environment_manager.close("api server shutdown")
+        except Exception as exc:
+            # Keep the old adapter and action reporting alive when stop is unproven.
+            super().server_close()
+            if errors:
+                raise ShutdownErrors("API server shutdown failed", [*errors, exc]) from None
+            raise
+        try:
+            try:
+                if hasattr(self, "connections"):
+                    self.connections.close()
+            except Exception as exc:
+                errors.append(exc)
+            finally:
+                try:
+                    if hasattr(self, "decision_service"):
+                        self.decision_service.close()
+                except Exception as exc:
+                    errors.append(exc)
+                finally:
+                    try:
+                        if hasattr(self, "action_service"):
+                            self.action_service.close()
+                    except Exception as exc:
+                        errors.append(exc)
+        finally:
+            try:
+                super().server_close()
+            except Exception as exc:
+                errors.append(exc)
+        if len(errors) == 1:
+            raise errors[0]
+        if errors:
+            raise ShutdownErrors("API server shutdown failed", errors)
 
 
-def build_server(host: str, port: int, tick_hz: float) -> AstrBotEXHTTPServer:
+def build_server(host: str, port: int, tick_hz: float, *,
+                 management_settings: ManagementSettings | None = None) -> AstrBotEXHTTPServer:
+    if host not in {"127.0.0.1", "localhost"}:
+        raise ValueError("management HTTP requires a loopback binding")
     project_root = Path(__file__).resolve().parents[2]
     data_dir = os.environ.get("ASTRBOTEX_DATA_DIR")
     data_root = Path(data_dir).resolve() if data_dir else project_root
     event_bus = EventBus()
     topic_bus = TopicBus()
+    ledger = ActionLedger(prepare_action_ledger(data_root))
+    try:
+        dispatcher = ActionDispatcher(ledger)
+    except BaseException:
+        ledger.close()
+        raise
+    catalog = RuntimeCapabilityCatalog()
+    action_service = ActionService(ledger, dispatcher, catalog)
+    catalog.on_change = action_service.update_versions
+    environment_manager = EnvironmentManager(
+        data_root=data_root,
+        event_bus=event_bus,
+        topic_bus=topic_bus,
+    )
+    environment_manager.action_service = action_service
+    decision_service = DecisionService(action_service, topic_bus=topic_bus, environment=environment_manager)
+    environment_manager.decision_service = decision_service
+    try:
+        decision_management = DecisionManagement(decision_service, data_root, event_bus=event_bus,
+                                                settings=management_settings)
+    except BaseException:
+        try:
+            decision_service.close()
+        finally:
+            action_service.close()
+        raise
     fusion = None
     try:
         perception_config = load_perception_config(data_root / "profiles" / "default" / "perception.json")
@@ -977,7 +1251,14 @@ def build_server(host: str, port: int, tick_hz: float) -> AstrBotEXHTTPServer:
         event_bus=event_bus,
         topic_bus=topic_bus,
         fusion=fusion,
+        action_service=action_service,
+        decision_service=decision_service,
     )
+    def prove_decision_owner_stop(slot, reason):
+        decision_service.request_stop(reason)
+        return action_service.prove_owner_stop(slot, reason)
+
+    runtime.registry.set_action_lifecycle_guard(prove_decision_owner_stop)
     _astrbot_base_url = os.environ.get("ASTRBOT_BASE_URL", "http://127.0.0.1:8766")
     _timeout_sec = float(os.environ.get("ASTRBOTEX_TIMEOUT_SEC", "5.0"))
     _capture_tail_sec = float(os.environ.get("ASTRBOTEX_CAPTURE_TAIL_SEC", "0.8"))
@@ -1020,11 +1301,19 @@ def build_server(host: str, port: int, tick_hz: float) -> AstrBotEXHTTPServer:
         capture_tail_sec=_capture_tail_sec,
         capture_fallback_playback_sec=_capture_fallback_sec,
     )
+    environment_manager.runtime_running = lambda: runtime.state.value == 'running'
     runtime.interaction_core = interaction_core
     controller = RuntimeController(runtime=runtime, tick_hz=tick_hz)
     server = AstrBotEXHTTPServer((host, port), AstrBotEXRequestHandler)
     server.controller = controller
+    server.action_service = action_service
+    server.decision_service = decision_service
+    server.decision_management = decision_management
+    server.action_dispatcher = dispatcher
+    server.action_ledger = ledger
+    server.capability_catalog = catalog
     server.interaction_core = interaction_core
+    server.environment_manager = environment_manager
     server.static_root = (project_root / "dashboard").resolve()
     server.vision_sources = VisionSourceManager(data_root / "profiles" / "default" / "vision_sources.json")
     server.local_plugins = LocalPluginManager(
@@ -1033,9 +1322,13 @@ def build_server(host: str, port: int, tick_hz: float) -> AstrBotEXHTTPServer:
         registry=runtime.registry,
         event_bus=runtime.event_bus,
         topic_bus=runtime.topic_bus,
+        environment_manager=environment_manager,
+        action_dispatcher=dispatcher,
+        capability_catalog=catalog,
     )
     server.local_plugins.discover()
     server.local_plugins.load_enabled()
+    action_service.update_versions()
     server.bridge = AstrBotBridge(
         controller=controller,
         local_plugins=server.local_plugins,
@@ -1051,18 +1344,31 @@ def build_server(host: str, port: int, tick_hz: float) -> AstrBotEXHTTPServer:
         runtime.perception_core.fusion = runtime.fusion
         server.vision_sources.load()
         server.connections.reload()
+        environment_manager.reload()
         server.local_plugins.discover()
         server.local_plugins.load_enabled()
+        action_service.update_versions()
         interaction_core.refresh_mic_subscriptions()
+        environment_manager.restore_selected_mode()
+        decision_management.after_restore()
 
     def before_snapshot_restore() -> None:
+        try:
+            decision_management.before_restore()
+        except ManagementError as exc:
+            if exc.code != "stop_not_proven":
+                raise
+            raise SnapshotError(action_service.status()["error"] or "stop proof pending") from exc
         controller.stop("instance snapshot restore")
+        if not action_service.stop_actions("instance snapshot restore"):
+            raise SnapshotError(action_service.status()["error"] or "action stop not proven")
         unload_errors: list[str] = []
         for slot in runtime.registry.list():
             try:
                 runtime.registry.unregister(slot.id)
             except Exception as exc:
                 unload_errors.append(f"{slot.id}: {exc}")
+        environment_manager.reset_after_restore()
         connections.close()
         if unload_errors:
             raise RuntimeError(f"plugin unload failed: {'; '.join(unload_errors)}")
@@ -1101,6 +1407,9 @@ def build_server(host: str, port: int, tick_hz: float) -> AstrBotEXHTTPServer:
 
     connections.set_business_handler(handle_zmq_business)
     server.connections.start_enabled()
+    selected_mode = environment_manager.status()["config"]["selected_mode"]
+    if selected_mode != "normal":
+        environment_manager.select(selected_mode)
     return server
 
 
@@ -1112,6 +1421,7 @@ def main() -> None:
     args = parser.parse_args()
 
     server = build_server(args.host, args.port, args.tick_hz)
+    print(f"Management credential file: {server.decision_management.credential_path}")
     print(f"AstrBotEX API listening on http://{args.host}:{args.port}")
     print(f"Dashboard: http://{args.host}:{args.port}/")
     print("Core endpoints: /api/status, /api/events, /api/runtime/start, /api/runtime/stop")
@@ -1123,8 +1433,6 @@ def main() -> None:
     except KeyboardInterrupt:
         print("Stopping AstrBotEX API server...")
     finally:
-        server.controller.stop("api server shutdown")
-        server.connections.close()
         server.server_close()
 
 

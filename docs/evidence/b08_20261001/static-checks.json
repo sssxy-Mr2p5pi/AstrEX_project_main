@@ -1,0 +1,30 @@
+{
+  "python_ast_feature_version": "3.10 syntax only; real runtime tests use3.12",
+  "python_files": [
+    "astrbot_ex/core/event_bus.py",
+    "astrbot_ex/core/api_server.py",
+    "astrbot_ex/core/decision/config.py",
+    "astrbot_ex/core/decision/history.py",
+    "astrbot_ex/core/decision/owned_laya.py",
+    "astrbot_ex/core/decision/management.py",
+    "astrbot_ex/core/decision/service.py",
+    "astrbot_ex/core/decision/backends/laya.py",
+    "tests/test_decision_runtime_integration.py",
+    "tests/test_owned_laya.py",
+    "tests/test_decision_management_http.py",
+    "tests/test_backup.py",
+    "tests/test_environment_http.py",
+    "tests/test_decision_management_boundaries.py",
+    "tests/test_decision_secret_redaction.py",
+    "tests/test_decision_management_interleaving.py",
+    "tests/test_decision_management_operations.py",
+    "tests/test_decision_management_history.py",
+    "scripts/verify_decision_management.py",
+    "scripts/verify_laya_backend.py"
+  ],
+  "node_check_exit_code": 0,
+  "node_check_output": "",
+  "git_diff_check_exit_code": 0,
+  "git_diff_check_output": "",
+  "real_run_frozen_source_changed": []
+}

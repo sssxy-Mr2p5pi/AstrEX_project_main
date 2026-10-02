@@ -1,0 +1,22 @@
+{
+  "utc": "2026-10-01T16:42:31.696343+00:00",
+  "owned_processes": [
+    {
+      "pid": 210698,
+      "generation": "96b1db2d6b2c4da4837fc2a574fa2457:1",
+      "manager_exit_code": -9,
+      "manager_exit_confirmed": true,
+      "proc_exists_at_audit": false
+    },
+    {
+      "pid": 211197,
+      "generation": "96b1db2d6b2c4da4837fc2a574fa2457:2",
+      "manager_exit_code": -15,
+      "manager_exit_confirmed": true,
+      "proc_exists_at_audit": false
+    }
+  ],
+  "laya_port": 8769,
+  "laya_port_reachable": false,
+  "after_cleanup_state": "stopped"
+}

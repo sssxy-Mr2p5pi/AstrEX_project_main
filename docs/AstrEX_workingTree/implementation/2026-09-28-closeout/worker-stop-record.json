@@ -1,0 +1,239 @@
+﻿{
+    "stoppedAt":  "2026-09-28T17:01:15.7631913+08:00",
+    "marinaSession":  "f32bcb5ee523416a9b44bb34f1be8ca1",
+    "preservedBridgeIds":  [
+                               24680,
+                               41300
+                           ],
+    "before":  [
+                   {
+                       "ProcessId":  41652,
+                       "ParentProcessId":  24680,
+                       "Name":  "claude.exe",
+                       "CreationDate":  "\/Date(1790563806851)\/"
+                   },
+                   {
+                       "ProcessId":  43084,
+                       "ParentProcessId":  24680,
+                       "Name":  "claude.exe",
+                       "CreationDate":  "\/Date(1790563806880)\/"
+                   },
+                   {
+                       "ProcessId":  37632,
+                       "ParentProcessId":  24680,
+                       "Name":  "claude.exe",
+                       "CreationDate":  "\/Date(1790565199319)\/"
+                   },
+                   {
+                       "ProcessId":  24052,
+                       "ParentProcessId":  24680,
+                       "Name":  "claude.exe",
+                       "CreationDate":  "\/Date(1790572252529)\/"
+                   },
+                   {
+                       "ProcessId":  32156,
+                       "ParentProcessId":  24680,
+                       "Name":  "claude.exe",
+                       "CreationDate":  "\/Date(1790572458248)\/"
+                   },
+                   {
+                       "ProcessId":  20888,
+                       "ParentProcessId":  24680,
+                       "Name":  "claude.exe",
+                       "CreationDate":  "\/Date(1790572458267)\/"
+                   },
+                   {
+                       "ProcessId":  19196,
+                       "ParentProcessId":  24680,
+                       "Name":  "claude.exe",
+                       "CreationDate":  "\/Date(1790573145633)\/"
+                   },
+                   {
+                       "ProcessId":  44104,
+                       "ParentProcessId":  24680,
+                       "Name":  "claude.exe",
+                       "CreationDate":  "\/Date(1790582349596)\/"
+                   },
+                   {
+                       "ProcessId":  26640,
+                       "ParentProcessId":  24680,
+                       "Name":  "claude.exe",
+                       "CreationDate":  "\/Date(1790582349616)\/"
+                   },
+                   {
+                       "ProcessId":  20056,
+                       "ParentProcessId":  41652,
+                       "Name":  "conhost.exe",
+                       "CreationDate":  "\/Date(1790563806865)\/"
+                   },
+                   {
+                       "ProcessId":  7648,
+                       "ParentProcessId":  43084,
+                       "Name":  "conhost.exe",
+                       "CreationDate":  "\/Date(1790563806886)\/"
+                   },
+                   {
+                       "ProcessId":  42092,
+                       "ParentProcessId":  41652,
+                       "Name":  "python.exe",
+                       "CreationDate":  "\/Date(1790563807347)\/"
+                   },
+                   {
+                       "ProcessId":  3308,
+                       "ParentProcessId":  43084,
+                       "Name":  "python.exe",
+                       "CreationDate":  "\/Date(1790563807353)\/"
+                   },
+                   {
+                       "ProcessId":  33644,
+                       "ParentProcessId":  37632,
+                       "Name":  "conhost.exe",
+                       "CreationDate":  "\/Date(1790565199329)\/"
+                   },
+                   {
+                       "ProcessId":  43836,
+                       "ParentProcessId":  37632,
+                       "Name":  "python.exe",
+                       "CreationDate":  "\/Date(1790565199681)\/"
+                   },
+                   {
+                       "ProcessId":  26820,
+                       "ParentProcessId":  24052,
+                       "Name":  "conhost.exe",
+                       "CreationDate":  "\/Date(1790572252539)\/"
+                   },
+                   {
+                       "ProcessId":  44596,
+                       "ParentProcessId":  24052,
+                       "Name":  "python.exe",
+                       "CreationDate":  "\/Date(1790572252897)\/"
+                   },
+                   {
+                       "ProcessId":  22432,
+                       "ParentProcessId":  32156,
+                       "Name":  "conhost.exe",
+                       "CreationDate":  "\/Date(1790572458254)\/"
+                   },
+                   {
+                       "ProcessId":  22404,
+                       "ParentProcessId":  20888,
+                       "Name":  "conhost.exe",
+                       "CreationDate":  "\/Date(1790572458273)\/"
+                   },
+                   {
+                       "ProcessId":  14940,
+                       "ParentProcessId":  32156,
+                       "Name":  "python.exe",
+                       "CreationDate":  "\/Date(1790572458629)\/"
+                   },
+                   {
+                       "ProcessId":  44560,
+                       "ParentProcessId":  20888,
+                       "Name":  "python.exe",
+                       "CreationDate":  "\/Date(1790572458639)\/"
+                   },
+                   {
+                       "ProcessId":  46068,
+                       "ParentProcessId":  19196,
+                       "Name":  "conhost.exe",
+                       "CreationDate":  "\/Date(1790573145639)\/"
+                   },
+                   {
+                       "ProcessId":  30772,
+                       "ParentProcessId":  19196,
+                       "Name":  "python.exe",
+                       "CreationDate":  "\/Date(1790573145993)\/"
+                   },
+                   {
+                       "ProcessId":  45468,
+                       "ParentProcessId":  44104,
+                       "Name":  "conhost.exe",
+                       "CreationDate":  "\/Date(1790582349606)\/"
+                   },
+                   {
+                       "ProcessId":  32668,
+                       "ParentProcessId":  26640,
+                       "Name":  "conhost.exe",
+                       "CreationDate":  "\/Date(1790582349621)\/"
+                   },
+                   {
+                       "ProcessId":  44288,
+                       "ParentProcessId":  44104,
+                       "Name":  "python.exe",
+                       "CreationDate":  "\/Date(1790582350013)\/"
+                   },
+                   {
+                       "ProcessId":  19252,
+                       "ParentProcessId":  26640,
+                       "Name":  "python.exe",
+                       "CreationDate":  "\/Date(1790582350037)\/"
+                   },
+                   {
+                       "ProcessId":  44300,
+                       "ParentProcessId":  42092,
+                       "Name":  "conhost.exe",
+                       "CreationDate":  "\/Date(1790563807361)\/"
+                   },
+                   {
+                       "ProcessId":  6136,
+                       "ParentProcessId":  3308,
+                       "Name":  "conhost.exe",
+                       "CreationDate":  "\/Date(1790563807365)\/"
+                   },
+                   {
+                       "ProcessId":  31184,
+                       "ParentProcessId":  43836,
+                       "Name":  "conhost.exe",
+                       "CreationDate":  "\/Date(1790565199689)\/"
+                   },
+                   {
+                       "ProcessId":  25396,
+                       "ParentProcessId":  44596,
+                       "Name":  "conhost.exe",
+                       "CreationDate":  "\/Date(1790572252911)\/"
+                   },
+                   {
+                       "ProcessId":  18580,
+                       "ParentProcessId":  14940,
+                       "Name":  "conhost.exe",
+                       "CreationDate":  "\/Date(1790572458639)\/"
+                   },
+                   {
+                       "ProcessId":  42984,
+                       "ParentProcessId":  44560,
+                       "Name":  "conhost.exe",
+                       "CreationDate":  "\/Date(1790572458649)\/"
+                   },
+                   {
+                       "ProcessId":  45996,
+                       "ParentProcessId":  30772,
+                       "Name":  "conhost.exe",
+                       "CreationDate":  "\/Date(1790573146002)\/"
+                   },
+                   {
+                       "ProcessId":  21684,
+                       "ParentProcessId":  44288,
+                       "Name":  "conhost.exe",
+                       "CreationDate":  "\/Date(1790582350034)\/"
+                   },
+                   {
+                       "ProcessId":  10500,
+                       "ParentProcessId":  19252,
+                       "Name":  "conhost.exe",
+                       "CreationDate":  "\/Date(1790582350047)\/"
+                   }
+               ],
+    "stoppedIds":  [
+                       41652,
+                       43084,
+                       37632,
+                       24052,
+                       32156,
+                       20888,
+                       19196,
+                       44104,
+                       26640
+                   ],
+    "remainingWorkerCount":  0,
+    "remainingIdentifiedDescendantCount":  0
+}

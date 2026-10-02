@@ -1,0 +1,62 @@
+{
+  "status": "detected_during_final_verification",
+  "ownership": "user_confirmed_another_development_task",
+  "action": "preserved_without_edit_or_rollback",
+  "files": {
+    "ros2_ws/src/astrex_interfaces/CMakeLists.txt": {
+      "sha256": "44adce0aaace8cf8a9e0c0a144af451a61c5d1d1ae06507f0656e5183efe2e21",
+      "mtime_ns": 1790838518099065937
+    },
+    "ros2_ws/src/astrex_ros_bridge/astrex_ros_bridge/balance_hold_controller.py": {
+      "sha256": "3f3fa3db495d2e7bb712f9c91ba3115884e113dc6bf0ca1f01cc6c76e968b4ac",
+      "mtime_ns": 1790838518008062998
+    },
+    "ros2_ws/src/astrex_ros_bridge/package.xml": {
+      "sha256": "4f20ea742c3448d18a1c9cb4417ab3640e1ebce633e226eb3989ccc08d4b61d0",
+      "mtime_ns": 1790838518039064000
+    },
+    "ros2_ws/src/astrex_ros_bridge/setup.py": {
+      "sha256": "776344f2b9add62f40f05501bd8ff4adfc3d813969b40123b497be1cea1daa83",
+      "mtime_ns": 1790838518069064969
+    },
+    "ros2_ws/src/astrex_interfaces/srv/MoveCartTo.srv": {
+      "sha256": "d5be9a4c2a3744634cccfd6bbb5cb977c1202d31ef36d44731f4ebe766484cb4",
+      "mtime_ns": 1790838518129066906
+    }
+  },
+  "files_at_final_check": {
+    "ros2_ws/src/astrex_interfaces/CMakeLists.txt": {
+      "sha256": "44adce0aaace8cf8a9e0c0a144af451a61c5d1d1ae06507f0656e5183efe2e21",
+      "mode": 436
+    },
+    "ros2_ws/src/astrex_ros_bridge/astrex_ros_bridge/balance_hold_controller.py": {
+      "sha256": "3f3fa3db495d2e7bb712f9c91ba3115884e113dc6bf0ca1f01cc6c76e968b4ac",
+      "mode": 436
+    },
+    "ros2_ws/src/astrex_ros_bridge/package.xml": {
+      "sha256": "4f20ea742c3448d18a1c9cb4417ab3640e1ebce633e226eb3989ccc08d4b61d0",
+      "mode": 436
+    },
+    "ros2_ws/src/astrex_ros_bridge/setup.py": {
+      "sha256": "776344f2b9add62f40f05501bd8ff4adfc3d813969b40123b497be1cea1daa83",
+      "mode": 436
+    },
+    "ros2_ws/src/astrex_interfaces/srv/MoveCartTo.srv": {
+      "sha256": "d5be9a4c2a3744634cccfd6bbb5cb977c1202d31ef36d44731f4ebe766484cb4",
+      "mode": 436
+    },
+    "scripts/lib/cartpole_service_launcher.py": {
+      "sha256": "d6a1194294b1bb394bab2b63846b8494f2fec2e2d97a0bb0a35174cca045b6d2",
+      "mode": 436
+    },
+    "scripts/start_cartpole_service.sh": {
+      "sha256": "5b5421a182b3fb4f316b8a9cb77178494d8d881ca54a8ac3101f4414fbd59595",
+      "mode": 509
+    },
+    "tests/test_cartpole_service_launcher.py": {
+      "sha256": "fc1b64437c4648d47e841b436cf536131d67af4304e59881ea4956a3efe08f8c",
+      "mode": 436
+    }
+  },
+  "checked_at_utc": "2026-10-01T07:14:16.174920+00:00"
+}

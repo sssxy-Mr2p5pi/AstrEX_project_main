@@ -1,0 +1,17 @@
+[
+  {
+    "path": "README.md",
+    "result": "clean_three_way_merge",
+    "final_sha256": "926f784ab0bf25e7350b92cc6fa35b7654115e6d86c03e7c9d1241f69cb64254"
+  },
+  {
+    "path": "README_AstrBotEX插件系统规范.md",
+    "result": "clean_three_way_merge",
+    "final_sha256": "0b66a8e4a7eac804c517b986c99629056eea9c1f144bf80fc6940ddb6bd88ef0"
+  },
+  {
+    "path": "TECHNICAL.md",
+    "result": "clean_three_way_merge",
+    "final_sha256": "ec5197730fa40cdc548bb0a9cc1c423945a587d8f0308a9babc129784af35027"
+  }
+]

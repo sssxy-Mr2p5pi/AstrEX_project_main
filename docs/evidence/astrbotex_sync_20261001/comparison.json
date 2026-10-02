@@ -1,0 +1,553 @@
+{
+  "base": "1a9c190cfb1b7d6ebcd747cec87f44ab5c71bcb1",
+  "target": "c9624a439874740cde4acc347c979419af120d05",
+  "changes": [
+    {
+      "path": "Dockerfile.ros2",
+      "status": "A"
+    },
+    {
+      "path": "README.md",
+      "status": "M"
+    },
+    {
+      "path": "README_AstrBotEX插件系统规范.md",
+      "status": "M"
+    },
+    {
+      "path": "astrbot_ex/core/actions/__init__.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/actions/dispatcher.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/actions/ledger.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/actions/models.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/actions/plugin_api.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/actions/service.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/actions/storage.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/api_server.py",
+      "status": "M"
+    },
+    {
+      "path": "astrbot_ex/core/astrbot_bridge.py",
+      "status": "M"
+    },
+    {
+      "path": "astrbot_ex/core/connection_manager.py",
+      "status": "M"
+    },
+    {
+      "path": "astrbot_ex/core/contracts.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/decision/__init__.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/decision/backends/__init__.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/decision/backends/base.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/decision/backends/jev.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/decision/backends/mock.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/decision/backends/registry.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/decision/catalog.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/decision/goal_manager.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/decision/models.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/decision/observations.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/decision/service.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/decision_transport.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/environments/contracts.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/environments/manager.py",
+      "status": "M"
+    },
+    {
+      "path": "astrbot_ex/core/environments/plugin_api.py",
+      "status": "M"
+    },
+    {
+      "path": "astrbot_ex/core/environments/ros2/adapter.py",
+      "status": "M"
+    },
+    {
+      "path": "astrbot_ex/core/environments/ros2/interfaces.py",
+      "status": "A"
+    },
+    {
+      "path": "astrbot_ex/core/event_bus.py",
+      "status": "M"
+    },
+    {
+      "path": "astrbot_ex/core/local_plugins.py",
+      "status": "M"
+    },
+    {
+      "path": "astrbot_ex/core/plugin_actor.py",
+      "status": "M"
+    },
+    {
+      "path": "astrbot_ex/core/plugin_registry.py",
+      "status": "M"
+    },
+    {
+      "path": "astrbot_ex/core/runtime.py",
+      "status": "M"
+    },
+    {
+      "path": "compose.ros2.yml",
+      "status": "A"
+    },
+    {
+      "path": "dashboard/app.js",
+      "status": "M"
+    },
+    {
+      "path": "dashboard/environments.js",
+      "status": "A"
+    },
+    {
+      "path": "dashboard/index.html",
+      "status": "M"
+    },
+    {
+      "path": "dashboard/styles.css",
+      "status": "M"
+    },
+    {
+      "path": "deploy/astrbotex/data/profiles/default/perception.json",
+      "status": "A"
+    },
+    {
+      "path": "docker-entrypoint.ros2.sh",
+      "status": "A"
+    },
+    {
+      "path": "docs/B02-ACCEPTANCE-MATRIX.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/B02-ACTION-SDK.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/B04-DECISION-CORE.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/B07-JEV-BACKEND.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/B07-JEV-OFFLINE.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/DECISION-CONTRACT.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/ROS2-ACCEPTANCE.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/ROS2-DEPLOYMENT.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/ROS2-SDK.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/templates/output_description.md",
+      "status": "A"
+    },
+    {
+      "path": "examples/ros2_echo/main.py",
+      "status": "A"
+    },
+    {
+      "path": "examples/ros2_echo/plugin.json",
+      "status": "A"
+    },
+    {
+      "path": "pyproject.toml",
+      "status": "M"
+    },
+    {
+      "path": "ros_interfaces/astrbotex_demo_interfaces/CMakeLists.txt",
+      "status": "A"
+    },
+    {
+      "path": "ros_interfaces/astrbotex_demo_interfaces/msg/Target.msg",
+      "status": "A"
+    },
+    {
+      "path": "ros_interfaces/astrbotex_demo_interfaces/package.xml",
+      "status": "A"
+    },
+    {
+      "path": "scripts/build_contracts.py",
+      "status": "A"
+    },
+    {
+      "path": "scripts/evaluate_jev_offline.py",
+      "status": "A"
+    },
+    {
+      "path": "scripts/gen_contract_fixtures.py",
+      "status": "A"
+    },
+    {
+      "path": "scripts/run_ros2.sh",
+      "status": "A"
+    },
+    {
+      "path": "scripts/sync_contract_mirror.py",
+      "status": "A"
+    },
+    {
+      "path": "scripts/verify_environment_ui.py",
+      "status": "A"
+    },
+    {
+      "path": "scripts/verify_ros2_deployment.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/action_dispatcher_crash_helper.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/action_ledger_crash_helper.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/contract_fixture_runner.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/a-accepted.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/a-canceled.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/a-failed.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/a-running.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/a-succeeded.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/a-unknown.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/builder.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/e-badparams.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/e-expiredlease.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/e-health-error.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/e-injection.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/e-nonfinite.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/e-revision.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/e-stalesession.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/e-unsafe.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/field_catalog.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/jev/build_offline_corpus.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/jev/normal.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/jev/offline-v1.jsonl",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/jev/offline-v1.manifest.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/p-arm.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/p-base.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/p-bbox-outofbounds.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/p-dropped-frame.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/p-empty.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/p-epoch-change.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/p-missing-depth.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/p-normal.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/p-old-frame.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/p-target-gone.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/scenario_index.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/simulated-arm-status.md",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/simulated-base-status.md",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision/yolo-front-detections.md",
+      "status": "A"
+    },
+    {
+      "path": "tests/fixtures/decision_contracts/golden.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/native_action_lifecycle_check.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_action_dispatcher.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_action_ledger.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_action_runtime_integration.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_action_service_failures.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_action_storage.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_b02_real_composition.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_backup.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_capability_catalog.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_contract_validation.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_decision_backend_contract.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_decision_contracts.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_decision_fixtures.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_decision_runtime_integration.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_decision_service.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_decision_transport.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_environment_boundaries.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_environment_http.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_environments.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_goal_contract_validation.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_goal_manager.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_jev_backend.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_jev_offline_evaluation.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_local_plugin_action_lifecycle.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_local_plugins_config.py",
+      "status": "M"
+    },
+    {
+      "path": "tests/test_observation_store.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_plugin_action_api.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_plugin_action_mailbox.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_plugin_registry_actions.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_ros2_integration.py",
+      "status": "A"
+    },
+    {
+      "path": "tests/test_snapshot_contracts.py",
+      "status": "A"
+    }
+  ],
+  "local_differences": [
+    "README.md",
+    "README_AstrBotEX插件系统规范.md",
+    "TECHNICAL.md"
+  ],
+  "local_only": [],
+  "missing_local": []
+}

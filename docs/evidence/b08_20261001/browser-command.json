@@ -1,0 +1,53 @@
+{
+  "cwd": "/tmp",
+  "execution_command": "node /tmp/astrex_b08_20261001/stage/scripts/verify_dashboard_management.mjs --base http://127.0.0.1:34577 --token-file /tmp/astrex_b08_20261001/browser-instance/secrets/admin.token --output /tmp/astrex_b08_20261001/browser-run-01",
+  "server_command": "PYTHONPATH=/home/sssxy/Projects/AstrEX_project_main/apps/AstrBotEX /home/sssxy/Projects/AstrEX_project_main/apps/AstrBotEX/.venv/bin/python /tmp/astrex_b08_20261001/serve_dashboard_acceptance.py",
+  "server_environment": {
+    "PYTHONPATH": "/home/sssxy/Projects/AstrEX_project_main/apps/AstrBotEX"
+  },
+  "node_version": "v22.15.0",
+  "chrome_version": "Google Chrome 154.0.8037.57",
+  "version_semantics": "Known from the environment check used for this browser run; verified again while collecting metadata, without running acceptance again.",
+  "metadata_version_probe_command": "node --version; /usr/bin/google-chrome --version",
+  "chrome_executable": "/usr/bin/google-chrome",
+  "chrome_launch_flags": [
+    "--headless=new",
+    "--no-sandbox",
+    "--disable-gpu",
+    "--disable-dev-shm-usage",
+    "--disable-background-networking",
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--remote-debugging-port=0",
+    "--user-data-dir=<owned temporary profile>",
+    "about:blank"
+  ],
+  "actual_temporary_profile_path": "not retained in execution metadata",
+  "browser_result": {
+    "pass": true,
+    "checks": 7,
+    "browser_process_id": 207388,
+    "exit_code": 0,
+    "exit_signal": null
+  },
+  "evidence": {
+    "path": "/tmp/astrex_b08_20261001/browser-run-01/result.json",
+    "sha256": "8872bcc6a186ea852b40d44ebbdd3bec09d6555ab465a903bf8e2832bb14cecf",
+    "mtime_ns": 1790871424761210162
+  },
+  "retained_helpers": [
+    {
+      "path": "/tmp/astrex_b08_20261001/browser-run-01/evidence-helpers/serve_dashboard_acceptance.py",
+      "sha256": "918883c12aad801936e905ca9fe9422cdbf224c4b1c658de5d3d95902c4a134e",
+      "mtime_ns": 1790873630055380519
+    },
+    {
+      "path": "/tmp/astrex_b08_20261001/browser-run-01/evidence-helpers/verify_dashboard_management.mjs",
+      "sha256": "725de31bd9b1caefbe8d5d26c1e7a4e316a4539117f3a1c3155606ba9c7e53d2",
+      "mtime_ns": 1790873630055446360
+    }
+  ],
+  "helper_hash_semantics": "Hashes of retained helper copies collected now; the original browser invocation did not separately capture helper hashes.",
+  "metadata_collected_utc": "2026-10-01T16:53:50.055638+00:00",
+  "acceptance_rerun_performed": false
+}

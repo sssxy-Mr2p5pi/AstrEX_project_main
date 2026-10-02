@@ -1,0 +1,15 @@
+{
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "executable": "/home/sssxy/Projects/AstrEX_project_main/apps/AstrBotEX/.venv/bin/python",
+  "platform": "Linux-6.17.0-1032-oem-x86_64-with-glibc2.39",
+  "architecture": "x86_64",
+  "packages": {
+    "pyzmq": "27.2.0",
+    "websockets": "17.1"
+  },
+  "ros_distro": "jazzy",
+  "ros_domain_id": "173",
+  "ros_automatic_discovery_range": "LOCALHOST",
+  "rclpy": true,
+  "custom_interface": true
+}

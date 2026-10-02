@@ -1,0 +1,41 @@
+{
+  "checked_at_utc": "2026-10-01T07:14:16.174920+00:00",
+  "head_unchanged": true,
+  "index_sha256": "36b4c03b44deb9417dfa53ccad06463fc1430eef42f6741f59696957aabf93fe",
+  "index_unchanged": true,
+  "cached_diff_unchanged": true,
+  "remotes_unchanged": true,
+  "submodule_refs_unchanged": true,
+  "submodule_worktrees": {
+    "apps/AstrBot": "",
+    "apps/adapters/astrbot/A.E.B": ""
+  },
+  "existing_files_checked": 229,
+  "outside_scope_modified": [
+    "ros2_ws/src/astrex_interfaces/CMakeLists.txt",
+    "ros2_ws/src/astrex_ros_bridge/astrex_ros_bridge/balance_hold_controller.py",
+    "ros2_ws/src/astrex_ros_bridge/package.xml",
+    "ros2_ws/src/astrex_ros_bridge/setup.py"
+  ],
+  "outside_scope_new": [
+    "ros2_ws/src/astrex_interfaces/srv/MoveCartTo.srv",
+    "scripts/lib/cartpole_service_launcher.py",
+    "scripts/start_cartpole_service.sh",
+    "tests/test_cartpole_service_launcher.py"
+  ],
+  "outside_scope_ownership": "user_confirmed_another_development_task",
+  "outside_scope_action": "preserved_not_written_by_this_task",
+  "vendor_files_checked": 216,
+  "vendor_mismatches": [],
+  "documentation_errors": [],
+  "document_sha256": {
+    "docs/AstrEX_workingTree/B08_高风险_决策管理API与密钥保护.md": "c4fc7f355325d08a713a19617b9fa17c9dd370fe07e779446f6b61a37f6a4bc2",
+    "docs/AstrEX_workingTree/B09_低风险_决策前端页面与展示.md": "9bc8a5f946f9139ce11db341edd0a0793e273a533b0ee697affecdf456887400",
+    "docs/AstrEX_workingTree/B11_高风险_ROS2执行插件与安全停止.md": "a7c84dfa6eee8f3df24bc8052ffb4dcdd1645e4f8492ea8ac26947b4313ddc31",
+    "docs/AstrEX_workingTree/00_施工总索引与派工规则.md": "37a059fdccbee9951ac106ceb85dfc33b897c4fc50413e719bd30d8eea3a7621",
+    "docs/MOBILE_MANIPULATION_PYROKI_MVP_PLAN.md": "f25d64e1c126dba16f9e645e3b012866746de591de1343c0e52f46eba51e9fca",
+    "docs/ASTRBOTEX_AEB_LATEST_FEATURES.md": "0fe0b7ff1b42f2d400e1b8f21645eabe5138676ab3740f7073f7e16a9069e818",
+    "docs/ASTRBOTEX_SYNC_20261001_RESULT.md": "35038a24fa116e23f278ad1f8ce47a7a3e8da13b2b6688e444aa96c1ec9026d6"
+  },
+  "result": "own_scope_verified_with_preserved_concurrent_changes"
+}

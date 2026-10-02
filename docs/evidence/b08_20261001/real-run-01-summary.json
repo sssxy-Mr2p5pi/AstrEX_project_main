@@ -1,0 +1,481 @@
+{
+  "scope": "Read-only audit of one real B08 management run; no replay, inference, source modification or new evaluation.",
+  "result_file": "/tmp/astrex_b08_20261001/real-run-01/result.json",
+  "result_sha256": "164e8281a3391741691af2cf19c22ce3643a2bc1aa22b20b106ad804f00f4a8e",
+  "declared_pass": true,
+  "audit_evidence_consistent": true,
+  "counts": {
+    "warmups_succeeded": 2,
+    "formal_ex_requests": 4,
+    "formal_ex_post_attempts": 4,
+    "total_post_submission_attempts_including_warmup": 6,
+    "server_access_log_post_200": 5,
+    "server_receipt_or_compute_for_fault": "not proven",
+    "formal_ex_success_responses": 3,
+    "formal_ex_timeout_without_response": 1,
+    "actual_test_actor_commands": 2,
+    "actual_ledger_events": 8,
+    "per_command_stop_evidence_rows": 0,
+    "blocked_mode_http_409": 1
+  },
+  "logs": [
+    {
+      "path": "/tmp/astrex_b08_20261001/real-run-01/owned-laya/laya-serve-96b1db2d6b2c4da4837fc2a574fa2457-1.txt",
+      "sha256": "b219fd0bf44887d9be9be57be4caf02eda7f58f6109388de6f23d9d4a8d9fe63",
+      "successful_post_200_count": 3,
+      "successful_get_health_count": 6,
+      "checkpoint_temperature_warning": true,
+      "graceful_shutdown_logged": false
+    },
+    {
+      "path": "/tmp/astrex_b08_20261001/real-run-01/owned-laya/laya-serve-96b1db2d6b2c4da4837fc2a574fa2457-2.txt",
+      "sha256": "819f217f6145abb9780805f7563eb7249279e29a08542a36588448b1c6c2e344",
+      "successful_post_200_count": 2,
+      "successful_get_health_count": 3,
+      "checkpoint_temperature_warning": true,
+      "graceful_shutdown_logged": true
+    }
+  ],
+  "formal_calls": [
+    {
+      "request_id": "07bfbe6a6efd48638f435b6d3549facf",
+      "snapshot_id": "910dabe58769400eb08166bc9d8c75e6",
+      "goal_id": "goal-1",
+      "generation": "96b1db2d6b2c4da4837fc2a574fa2457:1",
+      "input_sha256": "4364d799f572964f5381d8955d57204d3891afb6e9cde66ae02d55ec42e5db82",
+      "input_hash_recomputed_matches": true,
+      "request_bytes": 707,
+      "bytes_metadata_matches": true,
+      "started_monotonic_ns": 66990873253348,
+      "completed_monotonic_ns": 66990898796381,
+      "total_backend_record_ms": 25.543033,
+      "post_attempted": true,
+      "adapter_socket_written": null,
+      "response_received": true,
+      "http_status": 200,
+      "backend_error_code": null,
+      "restart_required": false,
+      "service_outcome": "shadow",
+      "command_ids": [],
+      "http_elapsed_ms": 22.388568002497777,
+      "server_inference_ms": 21.56,
+      "validated_backend_elapsed_ms": 24.382938,
+      "snapshot_versions_match_trace": true,
+      "response_usage": {
+        "input_tokens": 147,
+        "output_tokens": 0,
+        "state_tokens": 110,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      },
+      "backend_result_snapshot_matches": true,
+      "backend_result_versions_match": true
+    },
+    {
+      "request_id": "3434f0e18426416eb097b4773ce06a34",
+      "snapshot_id": "4208c55a21bb4b889575a7e6219cf492",
+      "goal_id": "goal-2",
+      "generation": "96b1db2d6b2c4da4837fc2a574fa2457:1",
+      "input_sha256": "4364d799f572964f5381d8955d57204d3891afb6e9cde66ae02d55ec42e5db82",
+      "input_hash_recomputed_matches": true,
+      "request_bytes": 707,
+      "bytes_metadata_matches": true,
+      "started_monotonic_ns": 66991126150813,
+      "completed_monotonic_ns": 66991155519914,
+      "total_backend_record_ms": 29.369101,
+      "post_attempted": true,
+      "adapter_socket_written": null,
+      "response_received": true,
+      "http_status": 200,
+      "backend_error_code": null,
+      "restart_required": false,
+      "service_outcome": "admitted",
+      "command_ids": [
+        "8198eae762944c12b14674c99cad5e29"
+      ],
+      "http_elapsed_ms": 24.345769008505158,
+      "server_inference_ms": 23.54,
+      "validated_backend_elapsed_ms": 27.240427,
+      "snapshot_versions_match_trace": true,
+      "response_usage": {
+        "input_tokens": 147,
+        "output_tokens": 0,
+        "state_tokens": 110,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      },
+      "backend_result_snapshot_matches": true,
+      "backend_result_versions_match": true
+    },
+    {
+      "request_id": "c3e2f7a0a1d64bc392d99e4187da3370",
+      "snapshot_id": "4281f6935142464585848ae5ac69904e",
+      "goal_id": "goal-3",
+      "generation": "96b1db2d6b2c4da4837fc2a574fa2457:1",
+      "input_sha256": "4364d799f572964f5381d8955d57204d3891afb6e9cde66ae02d55ec42e5db82",
+      "input_hash_recomputed_matches": true,
+      "request_bytes": 707,
+      "bytes_metadata_matches": true,
+      "started_monotonic_ns": 66991402355964,
+      "completed_monotonic_ns": 66992905537660,
+      "total_backend_record_ms": 1503.181696,
+      "post_attempted": true,
+      "adapter_socket_written": null,
+      "response_received": false,
+      "http_status": null,
+      "backend_error_code": "deadline_exceeded",
+      "restart_required": true,
+      "service_outcome": "discarded",
+      "command_ids": [],
+      "http_elapsed_ms": null,
+      "server_inference_ms": null,
+      "validated_backend_elapsed_ms": null,
+      "snapshot_versions_match_trace": true,
+      "response_usage": null
+    },
+    {
+      "request_id": "852ea9c10abf47b8be39ef7a77b46544",
+      "snapshot_id": "6876eb94de7443659906708a27b823cd",
+      "goal_id": "goal-4",
+      "generation": "96b1db2d6b2c4da4837fc2a574fa2457:2",
+      "input_sha256": "4364d799f572964f5381d8955d57204d3891afb6e9cde66ae02d55ec42e5db82",
+      "input_hash_recomputed_matches": true,
+      "request_bytes": 707,
+      "bytes_metadata_matches": true,
+      "started_monotonic_ns": 66999752770494,
+      "completed_monotonic_ns": 66999782437156,
+      "total_backend_record_ms": 29.666662,
+      "post_attempted": true,
+      "adapter_socket_written": null,
+      "response_received": true,
+      "http_status": 200,
+      "backend_error_code": null,
+      "restart_required": false,
+      "service_outcome": "admitted",
+      "command_ids": [
+        "e6fa8cad7b80461ea26221c29f3c0dd6"
+      ],
+      "http_elapsed_ms": 26.04780399997253,
+      "server_inference_ms": 25.02,
+      "validated_backend_elapsed_ms": 28.241925,
+      "snapshot_versions_match_trace": true,
+      "response_usage": {
+        "input_tokens": 147,
+        "output_tokens": 0,
+        "state_tokens": 110,
+        "state_tokens_dropped": 0,
+        "truncated": false,
+        "truncated_questions": []
+      },
+      "backend_result_snapshot_matches": true,
+      "backend_result_versions_match": true
+    }
+  ],
+  "owned_generations": [
+    {
+      "generation": "96b1db2d6b2c4da4837fc2a574fa2457:1",
+      "owned_pid": 210698,
+      "device": "cuda",
+      "checkpoint_device": "cuda",
+      "revision": "55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851",
+      "cpu_fallback_count": 0,
+      "load_ready_ms": 3945.880882,
+      "warmup_total_ms": 346.863969,
+      "warmup_backend_elapsed_ms": 345.301621,
+      "warmup_input_sha256": "6a854a4b35c9e6601b75df32df03ac83c30d95c490c6fe92c71b65b59c565083",
+      "exit_code": -9,
+      "exit_confirmed_monotonic_ns": 66995210655978
+    },
+    {
+      "generation": "96b1db2d6b2c4da4837fc2a574fa2457:2",
+      "owned_pid": 211197,
+      "device": "cuda",
+      "checkpoint_device": "cuda",
+      "revision": "55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851",
+      "cpu_fallback_count": 0,
+      "load_ready_ms": 3952.020991,
+      "warmup_total_ms": 350.304003,
+      "warmup_backend_elapsed_ms": 348.908626,
+      "warmup_input_sha256": "6a854a4b35c9e6601b75df32df03ac83c30d95c490c6fe92c71b65b59c565083",
+      "exit_code": -15,
+      "exit_confirmed_monotonic_ns": 67000241654050
+    }
+  ],
+  "fault_correlation": {
+    "fault": {
+      "generation": "96b1db2d6b2c4da4837fc2a574fa2457:1",
+      "owned_pid": 210698,
+      "post_written_monotonic_ns": 66991406344889,
+      "request_sha256": "4364d799f572964f5381d8955d57204d3891afb6e9cde66ae02d55ec42e5db82",
+      "fault": "SIGSTOP via saved owned Popen handle",
+      "method": "POST",
+      "path": "/v1/systemone"
+    },
+    "unique_generation_and_time_window_match": [
+      {
+        "request_id": "c3e2f7a0a1d64bc392d99e4187da3370",
+        "snapshot_id": "4281f6935142464585848ae5ac69904e",
+        "goal_id": "goal-3",
+        "generation": "96b1db2d6b2c4da4837fc2a574fa2457:1",
+        "input_sha256": "4364d799f572964f5381d8955d57204d3891afb6e9cde66ae02d55ec42e5db82",
+        "input_hash_recomputed_matches": true,
+        "request_bytes": 707,
+        "bytes_metadata_matches": true,
+        "started_monotonic_ns": 66991402355964,
+        "completed_monotonic_ns": 66992905537660,
+        "total_backend_record_ms": 1503.181696,
+        "post_attempted": true,
+        "adapter_socket_written": null,
+        "response_received": false,
+        "http_status": null,
+        "backend_error_code": "deadline_exceeded",
+        "restart_required": true,
+        "service_outcome": "discarded",
+        "command_ids": [],
+        "http_elapsed_ms": null,
+        "server_inference_ms": null,
+        "validated_backend_elapsed_ms": null,
+        "snapshot_versions_match_trace": true,
+        "response_usage": null
+      }
+    ],
+    "identical_hash_formal_requests": 4,
+    "hash_alone_unique": false,
+    "goal3_no_commands": true,
+    "timeout_observed": true,
+    "post_fault_service_restart_required": true,
+    "post_fault_service_state": "restart_required",
+    "post_fault_display_error": "canceled_after_post",
+    "error_relabel_note": "Later cancel/close calls relabel service quarantine as canceled_after_post/closed_after_post; request trace preserves initial deadline_exceeded."
+  },
+  "recovery": {
+    "operation_state": "succeeded",
+    "old_generation": "96b1db2d6b2c4da4837fc2a574fa2457:1",
+    "new_generation": "96b1db2d6b2c4da4837fc2a574fa2457:2",
+    "old_process_exit": {
+      "generation": "96b1db2d6b2c4da4837fc2a574fa2457:1",
+      "exit_code": -9,
+      "exit_confirmed": true
+    },
+    "old_exit_precedes_new_spawn": true,
+    "new_generation_distinct": true,
+    "review_proven": true,
+    "installed_backend_stop_proven": true,
+    "returned_mode": "disabled",
+    "new_goal_required": true,
+    "replayed": false,
+    "resumed_command_goal_id": "goal-4"
+  },
+  "ledger": {
+    "commands": [
+      {
+        "command_id": "8198eae762944c12b14674c99cad5e29",
+        "final_status": "succeeded",
+        "actual_event_sequence": [
+          {
+            "event_seq": 1,
+            "status": "admitted",
+            "reason_code": ""
+          },
+          {
+            "event_seq": 2,
+            "status": "accepted",
+            "reason_code": ""
+          },
+          {
+            "event_seq": 3,
+            "status": "running",
+            "reason_code": ""
+          },
+          {
+            "event_seq": 4,
+            "status": "succeeded",
+            "reason_code": ""
+          }
+        ],
+        "states_exactly_admitted_accepted_running_succeeded": true,
+        "test_actor_only": true
+      },
+      {
+        "command_id": "e6fa8cad7b80461ea26221c29f3c0dd6",
+        "final_status": "succeeded",
+        "actual_event_sequence": [
+          {
+            "event_seq": 5,
+            "status": "admitted",
+            "reason_code": ""
+          },
+          {
+            "event_seq": 6,
+            "status": "accepted",
+            "reason_code": ""
+          },
+          {
+            "event_seq": 7,
+            "status": "running",
+            "reason_code": ""
+          },
+          {
+            "event_seq": 8,
+            "status": "succeeded",
+            "reason_code": ""
+          }
+        ],
+        "states_exactly_admitted_accepted_running_succeeded": true,
+        "test_actor_only": true
+      }
+    ],
+    "all_events": [
+      {
+        "event_seq": 1,
+        "command_id": "8198eae762944c12b14674c99cad5e29",
+        "status": "admitted",
+        "reason_code": "",
+        "details_json": "{}"
+      },
+      {
+        "event_seq": 2,
+        "command_id": "8198eae762944c12b14674c99cad5e29",
+        "status": "accepted",
+        "reason_code": "",
+        "details_json": "{}"
+      },
+      {
+        "event_seq": 3,
+        "command_id": "8198eae762944c12b14674c99cad5e29",
+        "status": "running",
+        "reason_code": "",
+        "details_json": "{\"test_actor_only\":true}"
+      },
+      {
+        "event_seq": 4,
+        "command_id": "8198eae762944c12b14674c99cad5e29",
+        "status": "succeeded",
+        "reason_code": "",
+        "details_json": "{\"test_actor_only\":true}"
+      },
+      {
+        "event_seq": 5,
+        "command_id": "e6fa8cad7b80461ea26221c29f3c0dd6",
+        "status": "admitted",
+        "reason_code": "",
+        "details_json": "{}"
+      },
+      {
+        "event_seq": 6,
+        "command_id": "e6fa8cad7b80461ea26221c29f3c0dd6",
+        "status": "accepted",
+        "reason_code": "",
+        "details_json": "{}"
+      },
+      {
+        "event_seq": 7,
+        "command_id": "e6fa8cad7b80461ea26221c29f3c0dd6",
+        "status": "running",
+        "reason_code": "",
+        "details_json": "{\"test_actor_only\":true}"
+      },
+      {
+        "event_seq": 8,
+        "command_id": "e6fa8cad7b80461ea26221c29f3c0dd6",
+        "status": "succeeded",
+        "reason_code": "",
+        "details_json": "{\"test_actor_only\":true}"
+      }
+    ],
+    "per_command_stop_evidence": []
+  },
+  "stop_receipts": [
+    {
+      "operation_id": "46969c07d6db4b5c9af6ea6d3040ca85",
+      "actor_stop_operation_id": "65c8116b36694e09a227be20d18d72d4",
+      "receipt_matches": true,
+      "proven": true,
+      "kind": "stop"
+    },
+    {
+      "operation_id": "38df967cd5644a06b4c697cb92e679a1",
+      "actor_stop_operation_id": "9c3755e938614956bd1a1445db34c454",
+      "receipt_matches": true,
+      "proven": true,
+      "kind": "stop"
+    },
+    {
+      "operation_id": "bff22c7b993643458c4aec42e02476ca",
+      "actor_stop_operation_id": "b686dc9469d8477f89c10432e3c928be",
+      "receipt_matches": true,
+      "proven": true,
+      "kind": "service_stop"
+    },
+    {
+      "operation_id": "f0179770be2148389a116ca7e4262860",
+      "actor_stop_operation_id": "fd9a37f8f38a4e31a0c8bfd0d13aa83e",
+      "receipt_matches": true,
+      "proven": true,
+      "kind": "stop"
+    },
+    {
+      "operation_id": "f03884102f0e468dbea3edb57cafde46",
+      "actor_stop_operation_id": "73eb6535187d4da4b221314d22f7e161",
+      "receipt_matches": true,
+      "proven": true,
+      "kind": "stop"
+    }
+  ],
+  "latency_samples_only": {
+    "successful_formal_ex_samples": 3,
+    "successful_actor_samples": 2,
+    "sample_condition": "Same simple Move safely state, no observations, one owner, three options; no performance distribution claim.",
+    "successful_backend_elapsed_ms": [
+      24.382938,
+      27.240427,
+      28.241925
+    ],
+    "successful_server_inference_ms": [
+      21.56,
+      23.54,
+      25.02
+    ],
+    "actor_samples": [
+      {
+        "kind": "real_execute_before_fault",
+        "snapshot_id": "4208c55a21bb4b889575a7e6219cf492",
+        "goal_to_actor_callback_accepted_ms": 42.463055,
+        "snapshot_to_actor_callback_accepted_ms": 41.143498,
+        "backend_return_to_actor_callback_accepted_ms": 11.346364
+      },
+      {
+        "kind": "real_execute_after_fresh_authorization",
+        "snapshot_id": "6876eb94de7443659906708a27b823cd",
+        "goal_to_actor_callback_accepted_ms": 41.438236,
+        "snapshot_to_actor_callback_accepted_ms": 40.483701,
+        "backend_return_to_actor_callback_accepted_ms": 10.410971
+      }
+    ],
+    "p50_p95": "not estimated from these small incidental samples"
+  },
+  "final_cleanup": {
+    "final_mode": "disabled",
+    "final_gate_open": false,
+    "active_goal": null,
+    "pending_goal": null,
+    "active_operations": 0,
+    "after_cleanup_state": "stopped",
+    "after_cleanup_restart_required": false,
+    "all_owned_process_exits_confirmed": true,
+    "owned_flag_meaning": "A retained owned Popen handle; owned=true does not mean the process is still running.",
+    "final_cached_health_meaning": "Last known ready health; not proof of a live service after stopped."
+  },
+  "overclaim_risks": [
+    "6 submitted POST attempts are supported; only 5 server HTTP 200 POST completions are logged. Fault socket write proves neither server receipt nor completed GPU inference.",
+    "All four formal EX request bodies have the same hash; the fault matches uniquely only with generation and monotonic request time window, not hash alone.",
+    "Actor succeeded is explicitly a test fixture result. No ROS 2, robot movement, Isaac, grasping or physical success was tested.",
+    "Stops have matching proven framework receipts, but per-command StopEvidence is absent because actions already succeeded or no action was active. This run does not establish cancellation of a running Actor or physical standstill.",
+    "Three successful formal model latency samples and two Actor samples do not establish p95 targets or general task quality. Prior B07 replan 0/8 remains unchanged.",
+    "Both service logs warn about an invalid choice:11+ temperature clamped to 0.5; do not claim globally calibrated confidence. This run only used three options.",
+    "Service quarantine error text changed after subsequent cancel/close operations; initial deadline root evidence is the request trace.",
+    "Final owned=true and cached CUDA health are retained bookkeeping, while exit codes prove both owned processes stopped."
+  ]
+}

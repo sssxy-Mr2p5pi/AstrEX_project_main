@@ -1,0 +1,22 @@
+{
+  "command": [
+    "/home/sssxy/Projects/AstrEX_project_main/apps/AstrBotEX/.venv/bin/python",
+    "scripts/verify_decision_management.py",
+    "--output",
+    "/tmp/astrex_b08_20261001/real-run-01",
+    "--port",
+    "8769",
+    "--device",
+    "cuda"
+  ],
+  "cwd": "/home/sssxy/Projects/AstrEX_project_main/apps/AstrBotEX",
+  "environment": {
+    "PYTHONPATH": ".:tests",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "started_utc": "2026-10-01T16:32:11.364125+00:00",
+  "finished_utc": "2026-10-01T16:32:25.746390+00:00",
+  "duration_s": 14.382275818003109,
+  "exit_code": 0,
+  "source_manifest_sha256": "604289ae0ab90cf3451040d1d6500377889304ed769a9bad3b978058b5e6b505"
+}

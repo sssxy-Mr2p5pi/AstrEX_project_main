@@ -1,0 +1,176 @@
+================================================================================
+AstrEX ROS 2 接口包构建与排查备忘
+================================================================================
+生成日期：2026-09-19
+适用：本机 Ubuntu + 系统 ROS 2 Jazzy（Python 3.12）+ conda（base 为 Python 3.14）
+仓库根：/home/sssxy/Projects/AstrEX_project_main
+工作区：  /home/sssxy/Projects/AstrEX_project_main/ros2_ws
+接口包：  ros2_ws/src/astrex_interfaces （ament_cmake，msg/srv/action）
+Isaac Lab：/home/sssxy/Projects/IsaacLab-2.3.2-test（v2.3.2，与本文的 ROS 构建无关）
+
+
+--------------------------------------------------------------------------------
+1. 先分清本机两套 Python（90% 的接口构建失败都出在这里）
+--------------------------------------------------------------------------------
+/home/sssxy/miniconda3/bin/python3   -> Python 3.14.6  没有 em 模块，也装不了 ROS 的 3.12 包
+/usr/bin/python3                     -> Python 3.12.3  有 em（来自 python3-empy），ROS Jazzy 只支持 3.12
+
+判定命令：
+    which -a python3
+    /usr/bin/python3 -V
+    /usr/bin/python3 -c "import em; print('em ok')"
+
+结论：构建 ROS 接口时，必须让 python3 = /usr/bin/python3（也就是先 conda deactivate），
+或者显式告诉 CMake 用系统解释器：
+    colcon build ... --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3
+
+
+--------------------------------------------------------------------------------
+2. 正确构建顺序（改 CMakeLists / package.xml / 新增接口时）
+--------------------------------------------------------------------------------
+    conda deactivate                        # ① 让 python3 回到 /usr/bin/python3
+    source /opt/ros/jazzy/setup.bash         # ② 载入系统 ROS underlay
+    cd /home/sssxy/Projects/AstrEX_project_main/ros2_ws
+    rm -rf build/<pkg> install/<pkg>         # ③ 只在"改了接口声明/换了工具链"时清（见第 4 节）
+    colcon build --symlink-install --packages-select <pkg>          # ④ 构建
+    source install/setup.bash                # ⑤ 载入工作区 overlay
+    ros2 interface show <pkg>/srv/Xxx        # ⑥ 验证（第 9 节有四条）
+
+只想不清缓存地重建：
+    colcon build --symlink-install --packages-select <pkg> --cmake-clean-cache
+
+注意：如果你在 conda 激活的 shell 里忘了 deactivate，就用带
+--cmake-args -DPython3_EXECUTABLE=/usr/bin/python3 的写法；其它情况会被 CMake 缓存记住，
+但清过 build 目录或新建包后仍要重新指定。
+
+
+--------------------------------------------------------------------------------
+3. source 到底做了什么（本机实测值）
+--------------------------------------------------------------------------------
+source /opt/ros/jazzy/setup.bash   => 系统 ROS underlay
+    AMENT_PREFIX_PATH=/opt/ros/jazzy
+    ROS_DISTRO=jazzy
+    PYTHONPATH 追加 /opt/ros/jazzy/lib/python3.12/site-packages
+    注意：它不会更换 python3 解释器（实测该步之后 which python3 仍是 conda 的）
+
+source ros2_ws/install/setup.bash  => 你的工作区 overlay（叠在 underlay 之上）
+    AMENT_PREFIX_PATH=<ws>/install/astrex_interfaces:/opt/ros/jazzy
+    PYTHONPATH=<ws>/install/astrex_interfaces/lib/python3.12/site-packages:/opt/ros/jazzy/...
+
+所以"进入环境"其实只是设置 AMENT_PREFIX_PATH / CMAKE_PREFIX_PATH / PYTHONPATH / PATH 这些变量，
+解释器始终是你当时调用的那个 python3。接口的 Python 绑定装在：
+    install/astrex_interfaces/lib/python3.12/site-packages/astrex_interfaces/...
+
+仓库里的 scripts/dev_env.sh 已包含"ROS + 工作区 overlay"两步（并导出 ASTREX_ROOT/ASTREX_DATA_ROOT），
+但它不会 deactivate conda —— 构建接口前仍要自己 conda deactivate。
+
+
+--------------------------------------------------------------------------------
+4. build 缓存什么时候必须清
+--------------------------------------------------------------------------------
+改了 rosidl_generate_interfaces(...) 的接口列表 / find_package(...) / 接口文件名   -> 要清
+换了构建用的 Python 解释器（例如从 conda 切回系统）                              -> 要清
+只改 .srv / .msg 的字段内容（文件名不变）                                        -> 一般不用清，rebuild 即可
+只改 ament_python 包的节点代码（配合 --symlink-install）                         -> 不用清
+
+不清缓存的典型症状：colcon 报 "Finished"，但 install 里没有接口，ros2 interface show 找不到资源。
+
+
+--------------------------------------------------------------------------------
+5. 症状 → 命令 → 结论（按顺序排查）
+--------------------------------------------------------------------------------
+[A] CMake Error: Could not find a package configuration file provided by "ament_cmake"
+    先跑：echo $AMENT_PREFIX_PATH
+    结论：ROS 没 source（在正确的 shell 里执行 source /opt/ros/jazzy/setup.bash）
+
+[B] ModuleNotFoundError: No module named 'em'（出现在 rosidl_adapter 调用里）
+    先跑：which -a python3 ; rg Python3_EXECUTABLE build/<pkg>/CMakeCache.txt
+    结论：CMake 用了 conda 的 Python 3.14 → conda deactivate，或 -DPython3_EXECUTABLE=/usr/bin/python3
+
+[C] CMake Error: Unknown CMake command "rosidl_xxx"
+    先跑：rg -n "rosidl_|find_package" src/<pkg>/CMakeLists.txt
+    结论：宏名写错或漏 find_package(rosidl_default_generators REQUIRED)
+          正确宏是 rosidl_generate_interfaces（ROS 2 里没有 rosidl_default_interfaces）
+
+[D] colcon 成功，但 ros2 interface show 报
+    Could not find the resource '<pkg>' of type 'rosidl_interfaces'
+    先跑：cat install/<pkg>/share/ament_index/resource_index/rosidl_interfaces/<pkg>
+          ls install/<pkg>/share/<pkg>/srv/
+    结论：接口根本没生成 → 接口没列进宏 / package.xml 缺 rosidl 三项 / 用旧缓存构建（见第 8 节案例）
+
+[E] ros2 interface show 报 Unknown package '<pkg>'
+    先跑：ros2 pkg prefix <pkg>   ;   echo $AMENT_PREFIX_PATH
+    结论：工作区 overlay 没 source，或 install/<pkg> 被删掉
+
+[F] ros2 interface show 看到的是旧定义
+    先跑：ros2 pkg prefix <pkg>   ;   echo $AMENT_PREFIX_PATH
+    结论：重建后没重新 source，或同时叠了两套 install（顺序问题）
+
+[G] 接口能 show，但 python3 -c "from <pkg>.srv import X" 失败
+    先跑：python3 -c "import sys; print(sys.version)"   ;   echo $PYTHONPATH
+    结论：解释器不对（conda 3.14）或没 source overlay；ROS Jazzy 的包只装在 3.12 目录
+
+[H] colcon 只给一句 "exited with code 1"，看不到真正原因
+    先跑：sed 's/\x1b\[[0-9;]*m//g' ros2_ws/log/latest_build/<pkg>/stdout_stderr.log | tail -40
+    或者：colcon build --symlink-install --packages-select <pkg> --event-handlers console_direct+
+    结论：真正错误在这两个地方，CMake 细节看 build/<pkg>/CMakeFiles/CMakeConfigureLog.yaml
+
+[I] 用到别的包的类型时生成失败
+    先跑：rg -n "find_package|DEPENDENCIES" src/<pkg>/CMakeLists.txt
+    结论：需要 find_package(X REQUIRED) + rosidl_generate_interfaces(... DEPENDENCIES X)
+          并在 package.xml 加 <depend>X</depend>
+
+[J] 不确定工作区有哪些包/依赖
+    先跑：colcon list   ;   colcon graph
+
+
+--------------------------------------------------------------------------------
+6. 接口文件的硬性要求
+--------------------------------------------------------------------------------
+- .srv 必须有 "---" 分隔请求与响应；.msg/.action 同理（action 需要两个 "---"）。
+- 文件名大小写敏感：SpinPole.srv 与 spinpole.srv 是两个不同接口；命令行里的名字必须与文件名完全一致。
+- 新增任何 msg/srv/action，都要逐个写进 rosidl_generate_interfaces(${PROJECT_NAME} ...) 列表。
+- package.xml 需要有：
+      <build_depend>rosidl_default_generators</build_depend>
+      <exec_depend>rosidl_default_runtime</exec_depend>
+      <member_of_group>rosidl_interface_packages</member_of_group>
+- CMakeLists 里 rosidl_generate_interfaces(...) 必须在 ament_package() 之前。
+- --symlink-install 只软链 Python 脚本；生成的接口文件是拷贝，改了 .srv 必须重新 build。
+
+
+--------------------------------------------------------------------------------
+7. 2026-09-19 本次实际踩到的四个坑（可当案例对照）
+--------------------------------------------------------------------------------
+1) 现象：colcon 报成功（1.68s），但 ros2 interface show 找不到资源。
+   原因：那次构建用的 CMakeLists 还是空接口包版本（CMakeLists 修改时间 16:18 晚于构建时间 16:15），
+         install 里没有 rosidl_interfaces 索引；构建日志里也完全没有 rosidl 输出。
+2) 宏名写成 rosidl_default_interfaces —— ROS 2 里没有这个宏，正确的是 rosidl_generate_interfaces。
+3) package.xml 缺 rosidl_default_generators / rosidl_default_runtime / member_of_group。
+4) 修完上面三条后构建仍失败：
+   CMake 调用 /home/sssxy/miniconda3/bin/python3 -m rosidl_adapter → ModuleNotFoundError: No module named 'em'
+   原因：conda base 是 Python 3.14，且当时 python3 解析到 conda；改用系统解释器后成功：
+   colcon build --symlink-install --packages-select astrex_interfaces --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3
+
+
+--------------------------------------------------------------------------------
+8. 每次改动后的验证清单（四条，全过才算完成）
+--------------------------------------------------------------------------------
+1) cat install/astrex_interfaces/share/ament_index/resource_index/rosidl_interfaces/astrex_interfaces
+   期望：列出 srv/SpinPole.srv（及对应 .idl）
+2) ls install/astrex_interfaces/share/astrex_interfaces/srv/
+   期望：SpinPole.srv / SpinPole.idl / SpinPole.json
+3) ros2 interface show astrex_interfaces/srv/SpinPole
+   期望：打印 Request / Response 字段
+4) python3 -c "from astrex_interfaces.srv import SpinPole; print(SpinPole.Request())"
+   期望：输出 SpinPole_Request(...) 对象
+
+
+--------------------------------------------------------------------------------
+9. 与 Isaac 侧的边界（不要越界）
+--------------------------------------------------------------------------------
+- 自定义接口只在"系统 ROS 侧"使用（构建在 Python 3.12 的 /opt/ros/jazzy 环境里）。
+- Isaac Sim 5.1 自带 Jazzy，但跑在它自己的 Python 3.11 环境；不要把 ros2_ws/install 的
+  PYTHONPATH 带进 Sim 进程（launcher 会主动清空 PYTHONPATH/LD_LIBRARY_PATH）。
+- 与 Sim 之间继续使用已验证的标准消息：/joint_command、/joint_states、/clock。
+- 需要 Sim 侧消费自定义接口时，属于独立的环境改动，必须单独规划与验收。
+================================================================================

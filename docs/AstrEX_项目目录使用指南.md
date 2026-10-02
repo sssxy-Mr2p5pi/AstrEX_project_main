@@ -34,6 +34,8 @@ data = 我要保存、共享和归档的东西
 │   ├── AstrBotEX/
 │   ├── skill_registry/
 │   └── adapters/
+│       └── astrbot/
+│           └── A.E.B/      # 独立 submodule；内含 AstrBot 交互插件
 │
 ├── ros2_ws/
 │   └── src/
@@ -142,6 +144,8 @@ apps/
 ├── AstrBotEX/
 ├── skill_registry/
 └── adapters/
+    └── astrbot/
+        └── A.E.B/
 ```
 
 这一层位于：
@@ -185,6 +189,9 @@ ROS 2
 
 AstrBot 可以负责理解这句话。
 
+`apps/AstrBot/` 是官方 AstrBot 的 Git submodule。不要直接修改上游源码。
+本项目引入的 A.E.B. 插件源码位于 `apps/adapters/astrbot/A.E.B/`，不会因为源码存在就自动安装或启用。
+
 ### 这里适合放
 
 - AstrBot 本体
@@ -199,6 +206,17 @@ AstrBot 可以负责理解这句话。
 - MoveIt 控制
 - CAN 驱动
 - 关节控制代码
+
+---
+
+## 4.2 `apps/adapters/astrbot/A.E.B/`
+
+这是独立的 A.E.B. Git submodule。实际插件在其中的 `astrbot_plugin_astrbotex_interaction/`。
+它连接 AstrBot 与 AstrBotEX，提供文字、音频、视觉三条 ZeroMQ 通道。
+这里保存插件来源和固定版本；AstrBot 运行时仍需按插件说明完成安装、配置和启用。
+不要把插件直接复制进 `apps/AstrBot/` submodule，也不要把“已拉取源码”当作“已完成联调”。
+
+版本、能力和测试状态见[最新功能说明](ASTRBOTEX_AEB_LATEST_FEATURES.md)。
 
 ---
 
@@ -217,6 +235,12 @@ AstrBot 可以负责理解这句话。
 失败处理
 重新规划
 ```
+
+当前还包含环境管理与 ROS 2 可选适配代码。`astrbot_ex/core/environments/` 负责环境模式、状态和 ROS 图发现；插件使用的 ROS 接口当前通过内部 TopicBus 传递消息。它尚不能据此视为已打通真实 ROS Topic 控制。
+
+内置视觉插件源码位于 `apps/AstrBotEX/plugins/vision/astrbotex_embedded_yolo_vision_plugin/`。
+它将 YOLO worker 放在独立进程中，默认不启用。示例配置引用容器地址与模型路径；在本机验证前不要直接启用。
+具体能力与验证边界见[最新功能说明](ASTRBOTEX_AEB_LATEST_FEATURES.md)。
 
 以后可以逐步扩展成：
 
@@ -335,6 +359,8 @@ LLM 不应该直接产生 CAN 帧或关节电机命令。
 
 # 7. `apps/adapters/`：不同机器人怎么执行同一个技能
 
+`adapters/` 也保存跨应用的协议适配。当前的 `astrbot/A.E.B/` 负责 AstrBot 与 AstrBotEX 交互；它不负责关节控制。
+
 AstrEX 可能以后控制：
 
 - Isaac Sim
@@ -355,6 +381,7 @@ Pick(cup)
 
 ```text
 adapters/
+├── astrbot/A.E.B/       # AstrBot 交互插件来源
 ├── isaac_sim/
 ├── franka/
 ├── humanoid/
@@ -1233,3 +1260,15 @@ scripts/start_isaac_ros.sh
 回归与诊断脚本不要放进 `scripts/`；运行时产物不要进 Git（`/data/shared/AstrEX_project_data/logs/isaac/` 保存运行证据）。
 
 注意：`start_isaac_ros.sh` 启动前的严格 domain preflight 是 **cutover 验收门禁**，不是日常开发的永久阻塞条件；日常策略目标是以 endpoint conflict 为核心（`/clock`、`/joint_states`、`/joint_command`、controller/action/service 实际冲突才阻断）。细节见 [开发基线](ISAAC_51_DEV_BASELINE.md)。
+
+
+# 30. B09 前 EX 基线与实验资料归档（2026-10-02）
+
+- `apps/AstrBotEX/` 保留上游同步后的源码、B04/B07/B08、测试和验证入口。它仍是主仓库内的源码目录，不是 submodule。
+- `docs/` 保存结果报告和后续施工计划；`docs/evidence/` 保存精简汇总、版本信息及归档索引。
+- 原始测试日志、完整模型响应、一次性调试副本和历史源码 ZIP 放入 [/data/shared/AstrEX_project_data/logs/app/ex_pre_b09_20261002/](/data/shared/AstrEX_project_data/logs/app/ex_pre_b09_20261002/)。
+- 旧 `/tmp` 命令是历史运行记录。查证据时使用报告中的归档链接；不要依赖临时目录长期存在。
+- 已通过的回归测试仍用于后续防回退。只有确认无引用且已归档的一次性副本可以清理。
+- 模型权重、Python 虚拟环境、ROS 构建目录和真实凭据不随首次推送发布。不要用全目录删除命令清理工作区。
+
+首次推送目标为私有仓库 `sssxy-Mr2p5pi/AstrEX_project_main` 的 `main` 分支。完整记录见 [B09 前基线整理结果](PRE_B09_BASELINE_20261002_RESULT.md)。

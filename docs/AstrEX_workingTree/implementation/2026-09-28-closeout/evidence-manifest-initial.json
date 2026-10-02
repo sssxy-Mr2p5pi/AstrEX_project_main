@@ -1,0 +1,44 @@
+[
+  {
+    "source": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\task-evidence\\B00\\snapshot-focused.log",
+    "copy": "C:\\Users\\17088\\Desktop\\HZf\\implementation\\2026-09-28-closeout\\evidence\\ex-fixtures\\task-evidence\\B00\\snapshot-focused.log",
+    "sha256": "dd6dfce1a31ebe81b7b9454cd2fb30817a0eea7de1b3dedd9c9584c5883bd364",
+    "size": 7113
+  },
+  {
+    "source": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\task-evidence\\B00\\environment-timing\\full-final.log",
+    "copy": "C:\\Users\\17088\\Desktop\\HZf\\implementation\\2026-09-28-closeout\\evidence\\ex-fixtures\\task-evidence\\B00\\environment-timing\\full-final.log",
+    "sha256": "ab999421c2f26e1792f1c05da760f628dcc1e9400901cff664593c06a86a6fc5",
+    "size": 26776
+  },
+  {
+    "source": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\task-evidence\\B00\\environment-timing\\environments-final.log",
+    "copy": "C:\\Users\\17088\\Desktop\\HZf\\implementation\\2026-09-28-closeout\\evidence\\ex-fixtures\\task-evidence\\B00\\environment-timing\\environments-final.log",
+    "sha256": "98fec17a6c9aa139d74f33958d87db9f909fe8adf008d69b1c9070dfa5947b78",
+    "size": 2051
+  },
+  {
+    "source": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\task-evidence\\B00\\environment-timing\\environments.log",
+    "copy": "C:\\Users\\17088\\Desktop\\HZf\\implementation\\2026-09-28-closeout\\evidence\\ex-fixtures\\task-evidence\\B00\\environment-timing\\environments.log",
+    "sha256": "812006137a91b654e6757ab58fe575fe569db5658463dfc303a9688783e5fe60",
+    "size": 3688
+  },
+  {
+    "source": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\task-evidence\\B01\\coordinator-final-review-raw.log",
+    "copy": "C:\\Users\\17088\\Desktop\\HZf\\implementation\\2026-09-28-closeout\\evidence\\ex-content\\task-evidence\\B01\\coordinator-final-review-raw.log",
+    "sha256": "2bf81319088c75a97db4c34224f9085fb89817b4cf7a31ba2308d495c263f488",
+    "size": 915
+  },
+  {
+    "source": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\aeb\\task-evidence\\B00-AEB\\coordinator-real-host-full.log",
+    "copy": "C:\\Users\\17088\\Desktop\\HZf\\implementation\\2026-09-28-closeout\\evidence\\aeb\\task-evidence\\B00-AEB\\coordinator-real-host-full.log",
+    "sha256": "53e403709b2528abd43e80e4dc68990458958a147056c1d1c9b78aba7ab252de",
+    "size": 6667
+  },
+  {
+    "source": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\task-evidence\\B02\\native-20260928\\coordinator-native-combined-raw.log",
+    "copy": "C:\\Users\\17088\\Desktop\\HZf\\implementation\\2026-09-28-closeout\\evidence\\ex-b02\\task-evidence\\B02\\native-20260928\\coordinator-native-combined-raw.log",
+    "sha256": "15239cce02597541ccef2c079113528747bdef5bf34c9b04a451a0c18529d090",
+    "size": 3467
+  }
+]

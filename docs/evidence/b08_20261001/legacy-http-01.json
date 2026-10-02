@@ -1,0 +1,12 @@
+{
+  "command": "PYTHONPATH=.:tests PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m unittest tests.test_api_server tests.test_backup tests.test_environment_http tests.test_decision_runtime_integration -v",
+  "cwd": "/home/sssxy/Projects/AstrEX_project_main/apps/AstrBotEX",
+  "tests": 31,
+  "passed": 30,
+  "failed_tests": 1,
+  "failures": 1,
+  "errors": 1,
+  "elapsed_seconds": 13.766,
+  "reason": "SnapshotActionFactsTest legacy restore error-message compatibility failed; same test cleanup did not supply expected StopEvidence after assertion failure. Business assertions unchanged.",
+  "log": "/tmp/astrex_b08_20261001/legacy-http-01.txt"
+}

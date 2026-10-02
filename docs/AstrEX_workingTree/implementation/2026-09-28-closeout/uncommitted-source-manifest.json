@@ -1,0 +1,872 @@
+[
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\astrbot_ex\\core\\actions\\__init__.py",
+    "archive_name": "ex-fixtures/astrbot_ex/core/actions/__init__.py",
+    "sha256": "9a009b5761a3ea8fc95db7d1dc7fbe06a23f8bea09f7207642d2f33002cbe15b",
+    "bytes": 125
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\astrbot_ex\\core\\actions\\models.py",
+    "archive_name": "ex-fixtures/astrbot_ex/core/actions/models.py",
+    "sha256": "e962444be2db007f28b8499b0221e41b9f16b3e9751968c2002cd889886ae6af",
+    "bytes": 81136
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\astrbot_ex\\core\\contracts.py",
+    "archive_name": "ex-fixtures/astrbot_ex/core/contracts.py",
+    "sha256": "020311d5c44acf9e448ab1f329b915454c0f9e214f53a411c7238d2479c57afc",
+    "bytes": 129882
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\astrbot_ex\\core\\decision\\__init__.py",
+    "archive_name": "ex-fixtures/astrbot_ex/core/decision/__init__.py",
+    "sha256": "8e2ff584e5c26dd030a5cda9c94dbe037a337b200799b25cd46eb575a8c1073b",
+    "bytes": 58
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\astrbot_ex\\core\\decision\\models.py",
+    "archive_name": "ex-fixtures/astrbot_ex/core/decision/models.py",
+    "sha256": "9496fe42d8134f89cb6ac6e54d24809cad97d8a5cb8c6e7ae3dc91cf1f75a3be",
+    "bytes": 47858
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\docs\\DECISION-CONTRACT.md",
+    "archive_name": "ex-fixtures/docs/DECISION-CONTRACT.md",
+    "sha256": "9b3cfdb93851a4231172a3497ff8be00df458d055c7fc90d2fe69ac60058f617",
+    "bytes": 31086
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\scripts\\build_contracts.py",
+    "archive_name": "ex-fixtures/scripts/build_contracts.py",
+    "sha256": "1c0de21bb820f21de983dfd6b54a3bca2d09b57726a21363471df5402be18d11",
+    "bytes": 5622
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\scripts\\gen_contract_fixtures.py",
+    "archive_name": "ex-fixtures/scripts/gen_contract_fixtures.py",
+    "sha256": "1f627630ebeb996d8abc86e9d0607b7abd31d48be3f6a3967f68d850b3250931",
+    "bytes": 30894
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\scripts\\sync_contract_mirror.py",
+    "archive_name": "ex-fixtures/scripts/sync_contract_mirror.py",
+    "sha256": "2755841efcd0cffdddda8aeaef590ebe05e41a5a9a82877099384d39b0691cc2",
+    "bytes": 1898
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\tests\\contract_fixture_runner.py",
+    "archive_name": "ex-fixtures/tests/contract_fixture_runner.py",
+    "sha256": "50a258a7d3de6b12390b94600c9ee0593a4d96cef5b8a7d72f142be3a98a8a7d",
+    "bytes": 13533
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\tests\\fixtures\\decision_contracts\\golden.json",
+    "archive_name": "ex-fixtures/tests/fixtures/decision_contracts/golden.json",
+    "sha256": "66ae4f082605162ef5c637430b97c0ed49920d2418667b8b9c9cc4138162460d",
+    "bytes": 126131
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\tests\\test_contract_validation.py",
+    "archive_name": "ex-fixtures/tests/test_contract_validation.py",
+    "sha256": "62afc7662cd33c99aed2a0dd5c5bd421d5479124b7cdc56e1bb5c9a2b781cdbd",
+    "bytes": 10783
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\tests\\test_decision_contracts.py",
+    "archive_name": "ex-fixtures/tests/test_decision_contracts.py",
+    "sha256": "d9b70dc7c4cd812ead194f9abf55efadd5c7db6125cebf7f683910a926073153",
+    "bytes": 5491
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\tests\\test_environments.py",
+    "archive_name": "ex-fixtures/tests/test_environments.py",
+    "sha256": "f0d5f2f87300631a89a633e81d93b720d1518faaf15293602e06270dd806c7bc",
+    "bytes": 13708
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\tests\\test_goal_contract_validation.py",
+    "archive_name": "ex-fixtures/tests/test_goal_contract_validation.py",
+    "sha256": "004b91966dbb8d755b18bbf652407d34c70d1d4d368a95644982a752ab08ec66",
+    "bytes": 14948
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-fixtures\\tests\\test_snapshot_contracts.py",
+    "archive_name": "ex-fixtures/tests/test_snapshot_contracts.py",
+    "sha256": "e5a797972d93520df863fe94a612de6e39bf26c9e8bca9a1d3f350bdcb8edf03",
+    "bytes": 12349
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\astrbot_ex\\core\\actions\\__init__.py",
+    "archive_name": "ex-content/astrbot_ex/core/actions/__init__.py",
+    "sha256": "9a009b5761a3ea8fc95db7d1dc7fbe06a23f8bea09f7207642d2f33002cbe15b",
+    "bytes": 125
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\astrbot_ex\\core\\actions\\ledger.py",
+    "archive_name": "ex-content/astrbot_ex/core/actions/ledger.py",
+    "sha256": "51dc4d7b0d7040d4eba22582fe6c75edfdc28730afc6ca51e8bab2aa7e1c42f4",
+    "bytes": 25473
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\astrbot_ex\\core\\actions\\models.py",
+    "archive_name": "ex-content/astrbot_ex/core/actions/models.py",
+    "sha256": "e962444be2db007f28b8499b0221e41b9f16b3e9751968c2002cd889886ae6af",
+    "bytes": 81136
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\astrbot_ex\\core\\actions\\plugin_api.py",
+    "archive_name": "ex-content/astrbot_ex/core/actions/plugin_api.py",
+    "sha256": "81f7bab569c9f6af91e15e116782f6bc2282a8f486d5c4e5e1fe47710eae9090",
+    "bytes": 4473
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\astrbot_ex\\core\\contracts.py",
+    "archive_name": "ex-content/astrbot_ex/core/contracts.py",
+    "sha256": "84e2e7799ccf73c67e088e6b893b5a3085a7b4b10f7c8eaf937623d0902416c4",
+    "bytes": 112823
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\astrbot_ex\\core\\decision\\__init__.py",
+    "archive_name": "ex-content/astrbot_ex/core/decision/__init__.py",
+    "sha256": "8e2ff584e5c26dd030a5cda9c94dbe037a337b200799b25cd46eb575a8c1073b",
+    "bytes": 58
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\astrbot_ex\\core\\decision\\catalog.py",
+    "archive_name": "ex-content/astrbot_ex/core/decision/catalog.py",
+    "sha256": "cee76fe31a62923017f714c55619a3e4e4db9e3aeb5dec4a489623e7bf039bf0",
+    "bytes": 5355
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\astrbot_ex\\core\\decision\\models.py",
+    "archive_name": "ex-content/astrbot_ex/core/decision/models.py",
+    "sha256": "925e29c640d2108e7f8aaa73604c1cc14a6574b4232ff9b29a97f6f3fe292219",
+    "bytes": 30622
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\astrbot_ex\\core\\local_plugins.py",
+    "archive_name": "ex-content/astrbot_ex/core/local_plugins.py",
+    "sha256": "971c5b9a4cb43dd497e73c879021a29c6c7a72f4616977eb009e4e49fc8c5685",
+    "bytes": 41825
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\astrbot_ex\\core\\plugin_actor.py",
+    "archive_name": "ex-content/astrbot_ex/core/plugin_actor.py",
+    "sha256": "47e2be5c98b75bf73e14ad450979bf27a54b533b961c9217a0ab464f375aed6a",
+    "bytes": 19412
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\docs\\DECISION-CONTRACT.md",
+    "archive_name": "ex-content/docs/DECISION-CONTRACT.md",
+    "sha256": "871da484467f42f1bc0e82cd593314f68a07875d53f34eed2b23bb7c14fa4bec",
+    "bytes": 25962
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\docs\\templates\\output_description.md",
+    "archive_name": "ex-content/docs/templates/output_description.md",
+    "sha256": "cf0553a3d59d43b7927258cb3010b63fc13bc108c9c8c350ccc5062cc1804527",
+    "bytes": 17053
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\scripts\\build_contracts.py",
+    "archive_name": "ex-content/scripts/build_contracts.py",
+    "sha256": "1c0de21bb820f21de983dfd6b54a3bca2d09b57726a21363471df5402be18d11",
+    "bytes": 5622
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\scripts\\gen_contract_fixtures.py",
+    "archive_name": "ex-content/scripts/gen_contract_fixtures.py",
+    "sha256": "904014086a93e34b818b52c4d20cef7bcb51bb0e8ff6bc4c96a97db67ac336f9",
+    "bytes": 26844
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\scripts\\sync_contract_mirror.py",
+    "archive_name": "ex-content/scripts/sync_contract_mirror.py",
+    "sha256": "2755841efcd0cffdddda8aeaef590ebe05e41a5a9a82877099384d39b0691cc2",
+    "bytes": 1898
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\contract_fixture_runner.py",
+    "archive_name": "ex-content/tests/contract_fixture_runner.py",
+    "sha256": "b2568d7ede17b4500761920c56ebfe08772bd06c78610a04ccc3968a6e5e3a4c",
+    "bytes": 12233
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\a-accepted.json",
+    "archive_name": "ex-content/tests/fixtures/decision/a-accepted.json",
+    "sha256": "4f6b3cfcdc3a04da0f7927cca9f2ed5d7fece3ef3a6c70cb8f8729fb267a529d",
+    "bytes": 717
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\a-canceled.json",
+    "archive_name": "ex-content/tests/fixtures/decision/a-canceled.json",
+    "sha256": "5207e2bea8ff2ec907cdbba3dc3e15e9974e9b7c09e12a409d2e08948b18abd4",
+    "bytes": 901
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\a-failed.json",
+    "archive_name": "ex-content/tests/fixtures/decision/a-failed.json",
+    "sha256": "0a951d3c20670b009a735372c4de17f53282d3d3077c9773203ca03ae0898588",
+    "bytes": 716
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\a-running.json",
+    "archive_name": "ex-content/tests/fixtures/decision/a-running.json",
+    "sha256": "a563c8895122ce591d6495f681fd7341206e5fec8e0904c8c55594522e8be501",
+    "bytes": 712
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\a-succeeded.json",
+    "archive_name": "ex-content/tests/fixtures/decision/a-succeeded.json",
+    "sha256": "94614201c7f6726da0ba7afe2f22ac84f51a09da714e6f52c323ca3e264dde5f",
+    "bytes": 743
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\a-unknown.json",
+    "archive_name": "ex-content/tests/fixtures/decision/a-unknown.json",
+    "sha256": "382d24c4e32f22d831b3b738908c7e5c0a8f3d65b259e37564b5cd14aed8dd96",
+    "bytes": 803
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\builder.py",
+    "archive_name": "ex-content/tests/fixtures/decision/builder.py",
+    "sha256": "68035d38da3bf83c481da33357c1bac962661b7dc2ce1ce5c3e75ea014bc45a0",
+    "bytes": 33880
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\e-badparams.json",
+    "archive_name": "ex-content/tests/fixtures/decision/e-badparams.json",
+    "sha256": "c38c07875b593f3386a26fd3e99d715e027ca8a5cd527ea10e27310448d221c2",
+    "bytes": 1698
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\e-expiredlease.json",
+    "archive_name": "ex-content/tests/fixtures/decision/e-expiredlease.json",
+    "sha256": "db440f1b39e7bdeb9f5099e502a825e7e9a6f05861dabffff2dd38cdbc1abec8",
+    "bytes": 1106
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\e-health-error.json",
+    "archive_name": "ex-content/tests/fixtures/decision/e-health-error.json",
+    "sha256": "ea1bb119185bc8931f7c80bb14b5acf62696dfdec3f34511e14298b921c0da08",
+    "bytes": 976
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\e-injection.json",
+    "archive_name": "ex-content/tests/fixtures/decision/e-injection.json",
+    "sha256": "dc7e41e84e0279e9e46cf4f5ea7b939895148254670b06c957d164451f3696a7",
+    "bytes": 1603
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\e-nonfinite.json",
+    "archive_name": "ex-content/tests/fixtures/decision/e-nonfinite.json",
+    "sha256": "ef4aecc7ff076fd9b071dddaab02f5ca0029fe00dea97594889b8f819ef12dc4",
+    "bytes": 1217
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\e-revision.json",
+    "archive_name": "ex-content/tests/fixtures/decision/e-revision.json",
+    "sha256": "29a75e41a0361dea5b821b0d64c4237f7dfa2f25c7928aff143f6995f2c05cf2",
+    "bytes": 943
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\e-stalesession.json",
+    "archive_name": "ex-content/tests/fixtures/decision/e-stalesession.json",
+    "sha256": "c327c47705de47adb5603087ffb36b25741fc3db64865b9e96531bfdee106e9f",
+    "bytes": 962
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\e-unsafe.json",
+    "archive_name": "ex-content/tests/fixtures/decision/e-unsafe.json",
+    "sha256": "5253900086a9a31020aeeb0e53b4c44087a6f53b6cf0b1062883bf0c52a1bd2f",
+    "bytes": 1808
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\field_catalog.json",
+    "archive_name": "ex-content/tests/fixtures/decision/field_catalog.json",
+    "sha256": "ea01a9356d485919322cadafdbfe17c899a87f6be7680b8c4aa65786ea8f4eea",
+    "bytes": 70419
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\p-arm.json",
+    "archive_name": "ex-content/tests/fixtures/decision/p-arm.json",
+    "sha256": "cbc30756dbf78f54d64c2bf3017b97f64b596df8c545b9e21719f16330a0b730",
+    "bytes": 1354
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\p-base.json",
+    "archive_name": "ex-content/tests/fixtures/decision/p-base.json",
+    "sha256": "be4983f26f637a600201e9d5108fdc6c4de9e2a7181dbe30faf531ce0c07567c",
+    "bytes": 1159
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\p-bbox-outofbounds.json",
+    "archive_name": "ex-content/tests/fixtures/decision/p-bbox-outofbounds.json",
+    "sha256": "8953edfd8f7a6ab675de8cc2390f19578b3981ec37bbe2e9cb252f89ae4f9093",
+    "bytes": 1330
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\p-dropped-frame.json",
+    "archive_name": "ex-content/tests/fixtures/decision/p-dropped-frame.json",
+    "sha256": "3f93a3aa781a69ad99ad292efb2b6fbc73136e5622bb0209c63ea1a8fca98594",
+    "bytes": 1457
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\p-empty.json",
+    "archive_name": "ex-content/tests/fixtures/decision/p-empty.json",
+    "sha256": "093bdef6b4b9929076b0594dacee1f18a9170a4749814fe038f8830c8f7f8fb0",
+    "bytes": 956
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\p-epoch-change.json",
+    "archive_name": "ex-content/tests/fixtures/decision/p-epoch-change.json",
+    "sha256": "3a4e4ee72b3a65dc5bafa658bbe9a932be2fbf7a9b88e655bc3278494158952c",
+    "bytes": 1500
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\p-missing-depth.json",
+    "archive_name": "ex-content/tests/fixtures/decision/p-missing-depth.json",
+    "sha256": "eaff240180388da50dc797910ae17ff0b8fb0d59498a06f63d4a2d2c3a1cab07",
+    "bytes": 1329
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\p-normal.json",
+    "archive_name": "ex-content/tests/fixtures/decision/p-normal.json",
+    "sha256": "35256e566f2796043ab9a651aa1aab9ec393aa92bd9481c6eccc8dbe3179b79c",
+    "bytes": 1480
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\p-old-frame.json",
+    "archive_name": "ex-content/tests/fixtures/decision/p-old-frame.json",
+    "sha256": "e9993d3708fdf05c3df600c03cbe27818313b7ce903842a86fd81e8bfba16868",
+    "bytes": 1313
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\p-target-gone.json",
+    "archive_name": "ex-content/tests/fixtures/decision/p-target-gone.json",
+    "sha256": "7bea39fe023356919e9de0bbd7902ba6424e54e94b8de3c6c06e8995652f8955",
+    "bytes": 1160
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\scenario_index.json",
+    "archive_name": "ex-content/tests/fixtures/decision/scenario_index.json",
+    "sha256": "c52a2802536cedf0a6833f59ef062dcf0deb5726d4a6e95ae8725e322e59311e",
+    "bytes": 9695
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\simulated-arm-status.md",
+    "archive_name": "ex-content/tests/fixtures/decision/simulated-arm-status.md",
+    "sha256": "8afb5a8bac20535a3e57ab3254587b6b9fd81f38ecccf91d99d06809fab98ca7",
+    "bytes": 2067
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\simulated-base-status.md",
+    "archive_name": "ex-content/tests/fixtures/decision/simulated-base-status.md",
+    "sha256": "4c941e1965f825913221552f2c0b951ee294b454b897a2773bcf92e54069171e",
+    "bytes": 1584
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision\\yolo-front-detections.md",
+    "archive_name": "ex-content/tests/fixtures/decision/yolo-front-detections.md",
+    "sha256": "62aae17746c33e15458c98ffb683aae6db387da3c58a9121c830d2766ac6cd2f",
+    "bytes": 2227
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\fixtures\\decision_contracts\\golden.json",
+    "archive_name": "ex-content/tests/fixtures/decision_contracts/golden.json",
+    "sha256": "42aed636ab23be0da5fc974a562963b130def6f2cd1b4ef436b8ebaed74dd067",
+    "bytes": 108141
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\test_capability_catalog.py",
+    "archive_name": "ex-content/tests/test_capability_catalog.py",
+    "sha256": "71e8190f5a4096713a82a82be0a05702dc043240844f5d9e91fa93487bcb7202",
+    "bytes": 2758
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\test_contract_validation.py",
+    "archive_name": "ex-content/tests/test_contract_validation.py",
+    "sha256": "62afc7662cd33c99aed2a0dd5c5bd421d5479124b7cdc56e1bb5c9a2b781cdbd",
+    "bytes": 10783
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\test_decision_contracts.py",
+    "archive_name": "ex-content/tests/test_decision_contracts.py",
+    "sha256": "0eb21525deba49ce2b613ed2678fbb754c1c14758a87aa416d7d7807d6fbc8b2",
+    "bytes": 5496
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\test_decision_fixtures.py",
+    "archive_name": "ex-content/tests/test_decision_fixtures.py",
+    "sha256": "d79253d3bbe0d6f3201b86ab9cfb0d2664636d76cf85123e5109a59041d4acaf",
+    "bytes": 17900
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\test_goal_contract_validation.py",
+    "archive_name": "ex-content/tests/test_goal_contract_validation.py",
+    "sha256": "004b91966dbb8d755b18bbf652407d34c70d1d4d368a95644982a752ab08ec66",
+    "bytes": 14948
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\test_local_plugins_config.py",
+    "archive_name": "ex-content/tests/test_local_plugins_config.py",
+    "sha256": "e7ea35722c0f694bc33a905c44d5652cf4f3b080dde61e4fef4249c70b71a7ee",
+    "bytes": 10100
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\test_plugin_action_api.py",
+    "archive_name": "ex-content/tests/test_plugin_action_api.py",
+    "sha256": "2b0d6c4638f3d0900b54ba2450bbc57731d0967fd6bd693116568c9480b05393",
+    "bytes": 2970
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-content\\tests\\test_plugin_action_mailbox.py",
+    "archive_name": "ex-content/tests/test_plugin_action_mailbox.py",
+    "sha256": "be3d076c9e42f31a0430b78cddfc9f0bdafb8889228ad7ece763ae7bbc1c8075",
+    "bytes": 15220
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-platform\\astrbot_ex\\core\\actions\\__init__.py",
+    "archive_name": "ex-platform/astrbot_ex/core/actions/__init__.py",
+    "sha256": "9a009b5761a3ea8fc95db7d1dc7fbe06a23f8bea09f7207642d2f33002cbe15b",
+    "bytes": 125
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-platform\\astrbot_ex\\core\\actions\\models.py",
+    "archive_name": "ex-platform/astrbot_ex/core/actions/models.py",
+    "sha256": "e962444be2db007f28b8499b0221e41b9f16b3e9751968c2002cd889886ae6af",
+    "bytes": 81136
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-platform\\astrbot_ex\\core\\contracts.py",
+    "archive_name": "ex-platform/astrbot_ex/core/contracts.py",
+    "sha256": "84e2e7799ccf73c67e088e6b893b5a3085a7b4b10f7c8eaf937623d0902416c4",
+    "bytes": 112823
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-platform\\astrbot_ex\\core\\decision\\__init__.py",
+    "archive_name": "ex-platform/astrbot_ex/core/decision/__init__.py",
+    "sha256": "8e2ff584e5c26dd030a5cda9c94dbe037a337b200799b25cd46eb575a8c1073b",
+    "bytes": 58
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-platform\\astrbot_ex\\core\\decision\\models.py",
+    "archive_name": "ex-platform/astrbot_ex/core/decision/models.py",
+    "sha256": "925e29c640d2108e7f8aaa73604c1cc14a6574b4232ff9b29a97f6f3fe292219",
+    "bytes": 30622
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-platform\\astrbot_ex\\core\\plugin_actor.py",
+    "archive_name": "ex-platform/astrbot_ex/core/plugin_actor.py",
+    "sha256": "47e2be5c98b75bf73e14ad450979bf27a54b533b961c9217a0ab464f375aed6a",
+    "bytes": 19412
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-platform\\astrbot_ex\\core\\plugin_registry.py",
+    "archive_name": "ex-platform/astrbot_ex/core/plugin_registry.py",
+    "sha256": "a63a4f46597981fc677ead09bceeac12b84dc678405629bd5a0d377fd20511be",
+    "bytes": 12333
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-platform\\docs\\DECISION-CONTRACT.md",
+    "archive_name": "ex-platform/docs/DECISION-CONTRACT.md",
+    "sha256": "871da484467f42f1bc0e82cd593314f68a07875d53f34eed2b23bb7c14fa4bec",
+    "bytes": 25962
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-platform\\docs\\ENGINEERING-INTEGRATION-HANDOFF.md",
+    "archive_name": "ex-platform/docs/ENGINEERING-INTEGRATION-HANDOFF.md",
+    "sha256": "0c22361414245b753067e5ea0d5111b63c3204863d1358c3d9f4873466a33844",
+    "bytes": 13759
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-platform\\scripts\\build_contracts.py",
+    "archive_name": "ex-platform/scripts/build_contracts.py",
+    "sha256": "1c0de21bb820f21de983dfd6b54a3bca2d09b57726a21363471df5402be18d11",
+    "bytes": 5622
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-platform\\scripts\\gen_contract_fixtures.py",
+    "archive_name": "ex-platform/scripts/gen_contract_fixtures.py",
+    "sha256": "904014086a93e34b818b52c4d20cef7bcb51bb0e8ff6bc4c96a97db67ac336f9",
+    "bytes": 26844
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-platform\\scripts\\sync_contract_mirror.py",
+    "archive_name": "ex-platform/scripts/sync_contract_mirror.py",
+    "sha256": "2755841efcd0cffdddda8aeaef590ebe05e41a5a9a82877099384d39b0691cc2",
+    "bytes": 1898
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-platform\\tests\\contract_fixture_runner.py",
+    "archive_name": "ex-platform/tests/contract_fixture_runner.py",
+    "sha256": "b2568d7ede17b4500761920c56ebfe08772bd06c78610a04ccc3968a6e5e3a4c",
+    "bytes": 12233
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-platform\\tests\\fixtures\\decision_contracts\\golden.json",
+    "archive_name": "ex-platform/tests/fixtures/decision_contracts/golden.json",
+    "sha256": "42aed636ab23be0da5fc974a562963b130def6f2cd1b4ef436b8ebaed74dd067",
+    "bytes": 108141
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-platform\\tests\\test_contract_validation.py",
+    "archive_name": "ex-platform/tests/test_contract_validation.py",
+    "sha256": "62afc7662cd33c99aed2a0dd5c5bd421d5479124b7cdc56e1bb5c9a2b781cdbd",
+    "bytes": 10783
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-platform\\tests\\test_decision_contracts.py",
+    "archive_name": "ex-platform/tests/test_decision_contracts.py",
+    "sha256": "0eb21525deba49ce2b613ed2678fbb754c1c14758a87aa416d7d7807d6fbc8b2",
+    "bytes": 5496
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-platform\\tests\\test_goal_contract_validation.py",
+    "archive_name": "ex-platform/tests/test_goal_contract_validation.py",
+    "sha256": "004b91966dbb8d755b18bbf652407d34c70d1d4d368a95644982a752ab08ec66",
+    "bytes": 14948
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-platform\\tests\\test_plugin_action_mailbox.py",
+    "archive_name": "ex-platform/tests/test_plugin_action_mailbox.py",
+    "sha256": "be3d076c9e42f31a0430b78cddfc9f0bdafb8889228ad7ece763ae7bbc1c8075",
+    "bytes": 15220
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-platform\\tests\\test_plugin_registry_actions.py",
+    "archive_name": "ex-platform/tests/test_plugin_registry_actions.py",
+    "sha256": "68d7ab4f3b3c1819930ae7a2615fbdc6133f4da0b728361e604775a123cd2b73",
+    "bytes": 8420
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\astrbot_ex\\core\\actions\\__init__.py",
+    "archive_name": "ex-b02/astrbot_ex/core/actions/__init__.py",
+    "sha256": "9a009b5761a3ea8fc95db7d1dc7fbe06a23f8bea09f7207642d2f33002cbe15b",
+    "bytes": 125
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\astrbot_ex\\core\\actions\\ledger.py",
+    "archive_name": "ex-b02/astrbot_ex/core/actions/ledger.py",
+    "sha256": "51dc4d7b0d7040d4eba22582fe6c75edfdc28730afc6ca51e8bab2aa7e1c42f4",
+    "bytes": 25473
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\astrbot_ex\\core\\actions\\models.py",
+    "archive_name": "ex-b02/astrbot_ex/core/actions/models.py",
+    "sha256": "e962444be2db007f28b8499b0221e41b9f16b3e9751968c2002cd889886ae6af",
+    "bytes": 81136
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\astrbot_ex\\core\\contracts.py",
+    "archive_name": "ex-b02/astrbot_ex/core/contracts.py",
+    "sha256": "84e2e7799ccf73c67e088e6b893b5a3085a7b4b10f7c8eaf937623d0902416c4",
+    "bytes": 112823
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\astrbot_ex\\core\\decision\\__init__.py",
+    "archive_name": "ex-b02/astrbot_ex/core/decision/__init__.py",
+    "sha256": "8e2ff584e5c26dd030a5cda9c94dbe037a337b200799b25cd46eb575a8c1073b",
+    "bytes": 58
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\astrbot_ex\\core\\decision\\models.py",
+    "archive_name": "ex-b02/astrbot_ex/core/decision/models.py",
+    "sha256": "925e29c640d2108e7f8aaa73604c1cc14a6574b4232ff9b29a97f6f3fe292219",
+    "bytes": 30622
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\astrbot_ex\\core\\plugin_actor.py",
+    "archive_name": "ex-b02/astrbot_ex/core/plugin_actor.py",
+    "sha256": "47e2be5c98b75bf73e14ad450979bf27a54b533b961c9217a0ab464f375aed6a",
+    "bytes": 19412
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\docs\\DECISION-CONTRACT.md",
+    "archive_name": "ex-b02/docs/DECISION-CONTRACT.md",
+    "sha256": "871da484467f42f1bc0e82cd593314f68a07875d53f34eed2b23bb7c14fa4bec",
+    "bytes": 25962
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\docs\\templates\\output_description.md",
+    "archive_name": "ex-b02/docs/templates/output_description.md",
+    "sha256": "cf0553a3d59d43b7927258cb3010b63fc13bc108c9c8c350ccc5062cc1804527",
+    "bytes": 17053
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\scripts\\build_contracts.py",
+    "archive_name": "ex-b02/scripts/build_contracts.py",
+    "sha256": "1c0de21bb820f21de983dfd6b54a3bca2d09b57726a21363471df5402be18d11",
+    "bytes": 5622
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\scripts\\gen_contract_fixtures.py",
+    "archive_name": "ex-b02/scripts/gen_contract_fixtures.py",
+    "sha256": "904014086a93e34b818b52c4d20cef7bcb51bb0e8ff6bc4c96a97db67ac336f9",
+    "bytes": 26844
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\scripts\\sync_contract_mirror.py",
+    "archive_name": "ex-b02/scripts/sync_contract_mirror.py",
+    "sha256": "2755841efcd0cffdddda8aeaef590ebe05e41a5a9a82877099384d39b0691cc2",
+    "bytes": 1898
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\action_ledger_crash_helper.py",
+    "archive_name": "ex-b02/tests/action_ledger_crash_helper.py",
+    "sha256": "44c485cfd90172cdbb98c375e18b3989414638fa6c88678bf01481fedd38b56b",
+    "bytes": 2355
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\contract_fixture_runner.py",
+    "archive_name": "ex-b02/tests/contract_fixture_runner.py",
+    "sha256": "b2568d7ede17b4500761920c56ebfe08772bd06c78610a04ccc3968a6e5e3a4c",
+    "bytes": 12233
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\a-accepted.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/a-accepted.json",
+    "sha256": "4f6b3cfcdc3a04da0f7927cca9f2ed5d7fece3ef3a6c70cb8f8729fb267a529d",
+    "bytes": 717
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\a-canceled.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/a-canceled.json",
+    "sha256": "5207e2bea8ff2ec907cdbba3dc3e15e9974e9b7c09e12a409d2e08948b18abd4",
+    "bytes": 901
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\a-failed.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/a-failed.json",
+    "sha256": "0a951d3c20670b009a735372c4de17f53282d3d3077c9773203ca03ae0898588",
+    "bytes": 716
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\a-running.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/a-running.json",
+    "sha256": "a563c8895122ce591d6495f681fd7341206e5fec8e0904c8c55594522e8be501",
+    "bytes": 712
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\a-succeeded.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/a-succeeded.json",
+    "sha256": "94614201c7f6726da0ba7afe2f22ac84f51a09da714e6f52c323ca3e264dde5f",
+    "bytes": 743
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\a-unknown.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/a-unknown.json",
+    "sha256": "382d24c4e32f22d831b3b738908c7e5c0a8f3d65b259e37564b5cd14aed8dd96",
+    "bytes": 803
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\builder.py",
+    "archive_name": "ex-b02/tests/fixtures/decision/builder.py",
+    "sha256": "68035d38da3bf83c481da33357c1bac962661b7dc2ce1ce5c3e75ea014bc45a0",
+    "bytes": 33880
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\e-badparams.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/e-badparams.json",
+    "sha256": "c38c07875b593f3386a26fd3e99d715e027ca8a5cd527ea10e27310448d221c2",
+    "bytes": 1698
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\e-expiredlease.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/e-expiredlease.json",
+    "sha256": "db440f1b39e7bdeb9f5099e502a825e7e9a6f05861dabffff2dd38cdbc1abec8",
+    "bytes": 1106
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\e-health-error.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/e-health-error.json",
+    "sha256": "ea1bb119185bc8931f7c80bb14b5acf62696dfdec3f34511e14298b921c0da08",
+    "bytes": 976
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\e-injection.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/e-injection.json",
+    "sha256": "dc7e41e84e0279e9e46cf4f5ea7b939895148254670b06c957d164451f3696a7",
+    "bytes": 1603
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\e-nonfinite.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/e-nonfinite.json",
+    "sha256": "ef4aecc7ff076fd9b071dddaab02f5ca0029fe00dea97594889b8f819ef12dc4",
+    "bytes": 1217
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\e-revision.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/e-revision.json",
+    "sha256": "29a75e41a0361dea5b821b0d64c4237f7dfa2f25c7928aff143f6995f2c05cf2",
+    "bytes": 943
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\e-stalesession.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/e-stalesession.json",
+    "sha256": "c327c47705de47adb5603087ffb36b25741fc3db64865b9e96531bfdee106e9f",
+    "bytes": 962
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\e-unsafe.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/e-unsafe.json",
+    "sha256": "5253900086a9a31020aeeb0e53b4c44087a6f53b6cf0b1062883bf0c52a1bd2f",
+    "bytes": 1808
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\field_catalog.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/field_catalog.json",
+    "sha256": "ea01a9356d485919322cadafdbfe17c899a87f6be7680b8c4aa65786ea8f4eea",
+    "bytes": 70419
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\p-arm.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/p-arm.json",
+    "sha256": "cbc30756dbf78f54d64c2bf3017b97f64b596df8c545b9e21719f16330a0b730",
+    "bytes": 1354
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\p-base.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/p-base.json",
+    "sha256": "be4983f26f637a600201e9d5108fdc6c4de9e2a7181dbe30faf531ce0c07567c",
+    "bytes": 1159
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\p-bbox-outofbounds.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/p-bbox-outofbounds.json",
+    "sha256": "8953edfd8f7a6ab675de8cc2390f19578b3981ec37bbe2e9cb252f89ae4f9093",
+    "bytes": 1330
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\p-dropped-frame.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/p-dropped-frame.json",
+    "sha256": "3f93a3aa781a69ad99ad292efb2b6fbc73136e5622bb0209c63ea1a8fca98594",
+    "bytes": 1457
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\p-empty.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/p-empty.json",
+    "sha256": "093bdef6b4b9929076b0594dacee1f18a9170a4749814fe038f8830c8f7f8fb0",
+    "bytes": 956
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\p-epoch-change.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/p-epoch-change.json",
+    "sha256": "3a4e4ee72b3a65dc5bafa658bbe9a932be2fbf7a9b88e655bc3278494158952c",
+    "bytes": 1500
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\p-missing-depth.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/p-missing-depth.json",
+    "sha256": "eaff240180388da50dc797910ae17ff0b8fb0d59498a06f63d4a2d2c3a1cab07",
+    "bytes": 1329
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\p-normal.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/p-normal.json",
+    "sha256": "35256e566f2796043ab9a651aa1aab9ec393aa92bd9481c6eccc8dbe3179b79c",
+    "bytes": 1480
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\p-old-frame.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/p-old-frame.json",
+    "sha256": "e9993d3708fdf05c3df600c03cbe27818313b7ce903842a86fd81e8bfba16868",
+    "bytes": 1313
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\p-target-gone.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/p-target-gone.json",
+    "sha256": "7bea39fe023356919e9de0bbd7902ba6424e54e94b8de3c6c06e8995652f8955",
+    "bytes": 1160
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\scenario_index.json",
+    "archive_name": "ex-b02/tests/fixtures/decision/scenario_index.json",
+    "sha256": "c52a2802536cedf0a6833f59ef062dcf0deb5726d4a6e95ae8725e322e59311e",
+    "bytes": 9695
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\simulated-arm-status.md",
+    "archive_name": "ex-b02/tests/fixtures/decision/simulated-arm-status.md",
+    "sha256": "8afb5a8bac20535a3e57ab3254587b6b9fd81f38ecccf91d99d06809fab98ca7",
+    "bytes": 2067
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\simulated-base-status.md",
+    "archive_name": "ex-b02/tests/fixtures/decision/simulated-base-status.md",
+    "sha256": "4c941e1965f825913221552f2c0b951ee294b454b897a2773bcf92e54069171e",
+    "bytes": 1584
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision\\yolo-front-detections.md",
+    "archive_name": "ex-b02/tests/fixtures/decision/yolo-front-detections.md",
+    "sha256": "62aae17746c33e15458c98ffb683aae6db387da3c58a9121c830d2766ac6cd2f",
+    "bytes": 2227
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\fixtures\\decision_contracts\\golden.json",
+    "archive_name": "ex-b02/tests/fixtures/decision_contracts/golden.json",
+    "sha256": "42aed636ab23be0da5fc974a562963b130def6f2cd1b4ef436b8ebaed74dd067",
+    "bytes": 108141
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\test_action_ledger.py",
+    "archive_name": "ex-b02/tests/test_action_ledger.py",
+    "sha256": "2620b437a7b626361b91efef0f4d2a9ed27153f04f4c0bcf8997d11f7ef74875",
+    "bytes": 29581
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\test_contract_validation.py",
+    "archive_name": "ex-b02/tests/test_contract_validation.py",
+    "sha256": "62afc7662cd33c99aed2a0dd5c5bd421d5479124b7cdc56e1bb5c9a2b781cdbd",
+    "bytes": 10783
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\test_decision_contracts.py",
+    "archive_name": "ex-b02/tests/test_decision_contracts.py",
+    "sha256": "0eb21525deba49ce2b613ed2678fbb754c1c14758a87aa416d7d7807d6fbc8b2",
+    "bytes": 5496
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\test_decision_fixtures.py",
+    "archive_name": "ex-b02/tests/test_decision_fixtures.py",
+    "sha256": "d79253d3bbe0d6f3201b86ab9cfb0d2664636d76cf85123e5109a59041d4acaf",
+    "bytes": 17900
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\test_goal_contract_validation.py",
+    "archive_name": "ex-b02/tests/test_goal_contract_validation.py",
+    "sha256": "004b91966dbb8d755b18bbf652407d34c70d1d4d368a95644982a752ab08ec66",
+    "bytes": 14948
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\ex-b02\\tests\\test_plugin_action_mailbox.py",
+    "archive_name": "ex-b02/tests/test_plugin_action_mailbox.py",
+    "sha256": "be3d076c9e42f31a0430b78cddfc9f0bdafb8889228ad7ece763ae7bbc1c8075",
+    "bytes": 15220
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\aeb\\astrbot_plugin_astrbotex_interaction\\task_contracts.py",
+    "archive_name": "aeb/astrbot_plugin_astrbotex_interaction/task_contracts.py",
+    "sha256": "84e2e7799ccf73c67e088e6b893b5a3085a7b4b10f7c8eaf937623d0902416c4",
+    "bytes": 112823
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\aeb\\astrbot_plugin_astrbotex_interaction\\tests\\contract_fixture_runner.py",
+    "archive_name": "aeb/astrbot_plugin_astrbotex_interaction/tests/contract_fixture_runner.py",
+    "sha256": "b2568d7ede17b4500761920c56ebfe08772bd06c78610a04ccc3968a6e5e3a4c",
+    "bytes": 12233
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\aeb\\astrbot_plugin_astrbotex_interaction\\tests\\fixtures\\decision_contracts\\golden.json",
+    "archive_name": "aeb/astrbot_plugin_astrbotex_interaction/tests/fixtures/decision_contracts/golden.json",
+    "sha256": "42aed636ab23be0da5fc974a562963b130def6f2cd1b4ef436b8ebaed74dd067",
+    "bytes": 108141
+  },
+  {
+    "path": "C:\\Users\\17088\\AstrBotEX-work\\hzf-20260927\\aeb\\astrbot_plugin_astrbotex_interaction\\tests\\test_task_contracts.py",
+    "archive_name": "aeb/astrbot_plugin_astrbotex_interaction/tests/test_task_contracts.py",
+    "sha256": "3d5b3c3bc5a0a826d9a4f565478d64e970a3784eb8ce72bbb7b5d79cbee69dfd",
+    "bytes": 20720
+  }
+]

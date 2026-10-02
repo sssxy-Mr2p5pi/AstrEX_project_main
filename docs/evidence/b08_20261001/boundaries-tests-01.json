@@ -1,0 +1,12 @@
+{
+  "command": [
+    ".venv/bin/python",
+    "-m",
+    "unittest",
+    "tests.test_decision_management_boundaries",
+    "tests.test_event_bus",
+    "-v"
+  ],
+  "exit_code": 0,
+  "elapsed_s": 0.5923361778259277
+}
