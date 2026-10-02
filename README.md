@@ -1,4 +1,4 @@
-# AstrEX
+# AstrEX_project_main
 
 AstrEX is an internal research project for embodied task scheduling and execution.
 
