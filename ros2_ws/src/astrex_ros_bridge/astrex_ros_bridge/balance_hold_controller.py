@@ -172,8 +172,7 @@ class BalanceHoldController:
             raise ValueError("State and target_x must be finite")
         error = values.copy()
         error[0] -= target_x
-        with np.errstate(over='ignore', invalid='ignore'):
-            raw_force = float(-(self.gain @ error).item())
+        raw_force = float(-(self.gain @ error).item())
         if not math.isfinite(raw_force):
             raise ValueError("LQR output must be finite")
         return raw_force
