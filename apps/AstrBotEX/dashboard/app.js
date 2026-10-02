@@ -150,6 +150,7 @@ async function managementFetch(path, options = {}) {
   if (response.status === 401) {
     managementCredential = "";
     managementCredentialEpoch += 1;
+    window.DecisionPage?.credentialChanged();
     if (state.eventSource) state.eventSource.close();
     setText("managementCredentialStatus", "凭据无效或已失效，请重新输入。");
     setEventConnection(false, "等待凭据");
@@ -175,6 +176,7 @@ async function applyManagementCredential() {
   managementCredential = value;
   managementCredentialEpoch += 1;
   const epoch = managementCredentialEpoch;
+  window.DecisionPage?.credentialChanged();
   input.value = "";
   if (state.eventSource) state.eventSource.close();
   setText("managementCredentialStatus", "正在验证凭据；仅保存在本页内存。");
@@ -226,6 +228,7 @@ function parseHash() {
     return { page: "connection", connectionId: decodeURIComponent(parts.slice(1).join("/")) };
   }
   if (parts[0] === "connections") return { page: "connections" };
+  if (parts[0] === "decision") return { page: "decision" };
   if (parts[0] === "environments") return { page: "environments" };
   if (parts[0] === "archives") return { page: "archives" };
   if (parts[0] === "logs") return { page: "logs" };
@@ -234,10 +237,11 @@ function parseHash() {
   return { page: "core" };
 }
 
-function writeHash() {
+function writeHash(push = false) {
   let hash = "#/core";
   if (state.activePage === "plugins") hash = `#/plugins/${state.activePluginTab}`;
   else if (state.activePage === "connections") hash = "#/connections";
+  else if (state.activePage === "decision") hash = "#/decision";
   else if (state.activePage === "environments") hash = "#/environments";
   else if (state.activePage === "archives") hash = "#/archives";
   else if (state.activePage === "connection" && state.activeConnectionId) {
@@ -249,11 +253,12 @@ function writeHash() {
     hash = `#/plugins/${state.activePluginCategory || "special"}/${encodeURIComponent(state.activePluginId)}`;
   }
   if (window.location.hash !== hash) {
-    history.replaceState(null, "", hash);
+    history[push ? "pushState" : "replaceState"](null, "", hash);
   }
 }
 
 function switchPage(page, options = {}) {
+  if (state.activePage === "decision" && page !== "decision") window.DecisionPage?.leave();
   state.activePage = page;
   document.querySelectorAll(".page").forEach((el) => el.classList.toggle("active", el.id === `page-${page}`));
   document.querySelectorAll(".nav-item[data-page]").forEach((el) => {
@@ -262,6 +267,7 @@ function switchPage(page, options = {}) {
   });
   const fab = $("pluginUploadFab");
   if (fab) fab.hidden = page !== "plugins";
+  if (page === "decision") window.DecisionPage?.enter();
   if (page === "plugins") renderPluginGrid();
   if (page === "logs") renderEvents();
   if (page === "plugin") renderPluginDashboard();
@@ -269,7 +275,7 @@ function switchPage(page, options = {}) {
   if (page === "connections") refreshConnections({ preserveForm: true }).catch(() => {});
   if (page === "environments") refreshEnvironment().catch(() => {});
   if (page === "connection") renderConnectionDetail({ preserveForm: state.connectionDirty });
-  if (!options.silent) writeHash();
+  if (!options.silent) writeHash(options.push === true);
 }
 
 /* ============ ARCHIVES ============ */
@@ -745,6 +751,7 @@ function setConnection(ok, label) {
 }
 
 function setEventConnection(ok, label) {
+  window.DecisionPage?.connectionChanged(ok);
   setText("eventStatus", label);
   setText("stripSse", ok ? "LIVE" : "RETRY");
   const pill = $("logConnectionPill");
@@ -808,6 +815,7 @@ function connectEvents() {
     try {
       const event = JSON.parse(lines.join("\n"));
       pushEvent(event);
+      if (event.type === "decision_changed") window.DecisionPage?.notify();
       if (["environment", "environment_changed", "ros_graph_changed", "ros_endpoints_changed"].includes(event.type)) scheduleEnvironmentRefresh();
     } catch { /* Ignore malformed events, as the old EventSource client did. */ }
   };
@@ -1610,7 +1618,7 @@ function setPluginDashboardTitle(text) {
 }
 
 window.addEventListener("beforeunload", (event) => {
-  if (state.configDirty || state.pubsubDirty || state.connectionDirty || environmentHasDrafts()) {
+  if (state.configDirty || state.pubsubDirty || state.connectionDirty || environmentHasDrafts() || window.DecisionPage?.hasDraft()) {
     event.preventDefault();
     event.returnValue = "";
   }
@@ -1619,6 +1627,7 @@ window.addEventListener("beforeunload", (event) => {
 /* ============ BINDINGS ============ */
 
 function bindActions() {
+  window.DecisionPage?.init();
   setText("apiBaseLabel", API_BASE.replace(/^https?:\/\//, ""));
   $("managementCredentialApply").addEventListener("click", (event) =>
     runAction(event.currentTarget, "验证中", applyManagementCredential)
@@ -1629,7 +1638,7 @@ function bindActions() {
 
   document.querySelectorAll(".nav-item[data-page]").forEach((button) => {
     button.addEventListener("click", () => {
-      switchPage(button.dataset.page);
+      switchPage(button.dataset.page, { push: true });
     });
   });
 
@@ -1791,6 +1800,7 @@ function bindActions() {
 /* ============ ROUTE APPLICATION ============ */
 
 async function applyRoute(route) {
+  if (route.page === "decision") { switchPage("decision", { silent: true }); return; }
   if (route.page === "connection" && route.connectionId) {
     state.activeConnectionId = route.connectionId;
     state.connectionDirty = false;
